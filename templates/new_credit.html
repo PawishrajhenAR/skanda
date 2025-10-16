@@ -1,0 +1,178 @@
+{% extends "base.html" %}
+
+{% block title %}Add Credit - Invoice {{ invoice.invoice_number }} - Credit Management System{% endblock %}
+
+{% block content %}
+<div class="row">
+    <div class="col-12">
+        <div class="d-flex justify-content-between align-items-center mb-4">
+            <h1>
+                <i class="fas fa-plus me-2"></i>Add Credit Payment
+            </h1>
+            <a href="{{ url_for('view_invoice', invoice_id=invoice.id) }}" class="btn btn-outline-secondary">
+                <i class="fas fa-arrow-left me-1"></i>Back to Invoice
+            </a>
+        </div>
+    </div>
+</div>
+
+<div class="row">
+    <!-- Invoice Summary -->
+    <div class="col-md-4 mb-4">
+        <div class="card">
+            <div class="card-header">
+                <h5 class="mb-0">
+                    <i class="fas fa-file-invoice me-2"></i>Invoice Summary
+                </h5>
+            </div>
+            <div class="card-body">
+                <table class="table table-borderless table-sm">
+                    <tr>
+                        <td><strong>Invoice #:</strong></td>
+                        <td>{{ invoice.invoice_number }}</td>
+                    </tr>
+                    <tr>
+                        <td><strong>Salesman:</strong></td>
+                        <td>{{ invoice.salesman.name }}</td>
+                    </tr>
+                    <tr>
+                        <td><strong>Bill Amount:</strong></td>
+                        <td class="text-primary">₹{{ "%.2f"|format(invoice.bill_amount) }}</td>
+                    </tr>
+                    <tr>
+                        <td><strong>Total Credits:</strong></td>
+                        <td class="text-success">₹{{ "%.2f"|format(invoice.total_credits) }}</td>
+                    </tr>
+                    <tr>
+                        <td><strong>Outstanding:</strong></td>
+                        <td class="{% if invoice.outstanding_balance > 0 %}text-danger{% else %}text-success{% endif %}">
+                            ₹{{ "%.2f"|format(invoice.outstanding_balance) }}
+                        </td>
+                    </tr>
+                </table>
+                
+                {% if invoice.outstanding_balance <= 0 %}
+                <div class="alert alert-success">
+                    <i class="fas fa-check-circle me-1"></i>
+                    This invoice is fully paid!
+                </div>
+                {% endif %}
+            </div>
+        </div>
+    </div>
+    
+    <!-- Credit Form -->
+    <div class="col-md-8 mb-4">
+        <div class="card">
+            <div class="card-header">
+                <h5 class="mb-0">
+                    <i class="fas fa-credit-card me-2"></i>Payment Details
+                </h5>
+            </div>
+            <div class="card-body">
+                <form method="POST">
+                    <div class="row">
+                        <div class="col-md-6 mb-3">
+                            <label for="amount" class="form-label">
+                                <i class="fas fa-rupee-sign me-1"></i>Payment Amount *
+                            </label>
+                            <input type="number" class="form-control" id="amount" name="amount" 
+                                   step="0.01" min="0" max="{{ invoice.outstanding_balance }}" required>
+                            <div class="form-text">
+                                Maximum: ₹{{ "%.2f"|format(invoice.outstanding_balance) }}
+                            </div>
+                        </div>
+                        
+                        <div class="col-md-6 mb-3">
+                            <label for="payment_date" class="form-label">
+                                <i class="fas fa-calendar me-1"></i>Payment Date *
+                            </label>
+                            <input type="date" class="form-control" id="payment_date" name="payment_date" required>
+                        </div>
+                    </div>
+                    
+                    <div class="row">
+                        <div class="col-md-6 mb-3">
+                            <label for="payment_method" class="form-label">
+                                <i class="fas fa-credit-card me-1"></i>Payment Method *
+                            </label>
+                            <select class="form-select" id="payment_method" name="payment_method" required>
+                                <option value="Cash">Cash</option>
+                                <option value="Bank Transfer">Bank Transfer</option>
+                                <option value="Cheque">Cheque</option>
+                                <option value="UPI">UPI</option>
+                                <option value="Credit Card">Credit Card</option>
+                                <option value="Other">Other</option>
+                            </select>
+                        </div>
+                        
+                        <div class="col-md-6 mb-3">
+                            <label for="notes" class="form-label">
+                                <i class="fas fa-sticky-note me-1"></i>Notes
+                            </label>
+                            <input type="text" class="form-control" id="notes" name="notes" 
+                                   placeholder="Optional payment notes">
+                        </div>
+                    </div>
+                    
+                    <!-- Quick Amount Buttons -->
+                    {% if invoice.outstanding_balance > 0 %}
+                    <div class="mb-3">
+                        <label class="form-label">Quick Amount:</label>
+                        <div class="btn-group" role="group">
+                            <button type="button" class="btn btn-outline-primary btn-sm" onclick="setAmount({{ invoice.outstanding_balance }})">
+                                Full Amount (₹{{ "%.2f"|format(invoice.outstanding_balance) }})
+                            </button>
+                            <button type="button" class="btn btn-outline-secondary btn-sm" onclick="setAmount({{ invoice.outstanding_balance / 2 }})">
+                                Half (₹{{ "%.2f"|format(invoice.outstanding_balance / 2) }})
+                            </button>
+                            <button type="button" class="btn btn-outline-secondary btn-sm" onclick="setAmount(1000)">
+                                ₹1,000
+                            </button>
+                            <button type="button" class="btn btn-outline-secondary btn-sm" onclick="setAmount(5000)">
+                                ₹5,000
+                            </button>
+                        </div>
+                    </div>
+                    {% endif %}
+                    
+                    <div class="row">
+                        <div class="col-12">
+                            <button type="submit" class="btn btn-success">
+                                <i class="fas fa-save me-1"></i>Record Payment
+                            </button>
+                            <a href="{{ url_for('view_invoice', invoice_id=invoice.id) }}" class="btn btn-secondary ms-2">
+                                <i class="fas fa-times me-1"></i>Cancel
+                            </a>
+                        </div>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+// Set today's date as default
+document.getElementById('payment_date').valueAsDate = new Date();
+
+// Set amount function
+function setAmount(amount) {
+    document.getElementById('amount').value = amount.toFixed(2);
+}
+
+// Validate amount
+document.getElementById('amount').addEventListener('input', function() {
+    const maxAmount = {{ invoice.outstanding_balance }};
+    const enteredAmount = parseFloat(this.value);
+    
+    if (enteredAmount > maxAmount) {
+        this.setCustomValidity('Amount cannot exceed outstanding balance');
+    } else {
+        this.setCustomValidity('');
+    }
+});
+</script>
+{% endblock %}

@@ -1,0 +1,101 @@
+{% extends "base.html" %}
+
+{% block title %}New Invoice - Credit Management System{% endblock %}
+
+{% block content %}
+<div class="row">
+    <div class="col-12">
+        <div class="d-flex justify-content-between align-items-center mb-4">
+            <h1>
+                <i class="fas fa-plus me-2"></i>New Invoice
+            </h1>
+            <a href="{{ url_for('invoices') }}" class="btn btn-outline-secondary">
+                <i class="fas fa-arrow-left me-1"></i>Back to Invoices
+            </a>
+        </div>
+    </div>
+</div>
+
+<div class="row">
+    <div class="col-md-8 mx-auto">
+        <div class="card">
+            <div class="card-header">
+                <h5 class="mb-0">
+                    <i class="fas fa-file-invoice me-2"></i>Invoice Details
+                </h5>
+            </div>
+            <div class="card-body">
+                <form method="POST">
+                    <div class="row">
+                        <div class="col-md-6 mb-3">
+                            <label for="invoice_number" class="form-label">
+                                <i class="fas fa-hashtag me-1"></i>Invoice Number *
+                            </label>
+                            <input type="text" class="form-control" id="invoice_number" name="invoice_number" required>
+                            <div class="form-text">Must be unique</div>
+                        </div>
+                        
+                        <div class="col-md-6 mb-3">
+                            <label for="salesman_id" class="form-label">
+                                <i class="fas fa-user me-1"></i>Salesman *
+                            </label>
+                            <select class="form-select" id="salesman_id" name="salesman_id" required>
+                                <option value="">Select Salesman</option>
+                                {% for salesman in salesmen %}
+                                <option value="{{ salesman.id }}">{{ salesman.name }} - {{ salesman.contact }}</option>
+                                {% endfor %}
+                            </select>
+                        </div>
+                    </div>
+                    
+                    <div class="row">
+                        <div class="col-md-6 mb-3">
+                            <label for="delivery_date" class="form-label">
+                                <i class="fas fa-calendar me-1"></i>Delivery Date *
+                            </label>
+                            <input type="date" class="form-control" id="delivery_date" name="delivery_date" required>
+                        </div>
+                        
+                        <div class="col-md-6 mb-3">
+                            <label for="bill_amount" class="form-label">
+                                <i class="fas fa-rupee-sign me-1"></i>Bill Amount *
+                            </label>
+                            <input type="number" class="form-control" id="bill_amount" name="bill_amount" step="0.01" min="0" required>
+                        </div>
+                    </div>
+                    
+                    <div class="row">
+                        <div class="col-12">
+                            <button type="submit" class="btn btn-primary">
+                                <i class="fas fa-save me-1"></i>Create Invoice
+                            </button>
+                            <a href="{{ url_for('invoices') }}" class="btn btn-secondary ms-2">
+                                <i class="fas fa-times me-1"></i>Cancel
+                            </a>
+                        </div>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+// Set today's date as default
+document.getElementById('delivery_date').valueAsDate = new Date();
+
+// Auto-generate invoice number
+document.getElementById('invoice_number').addEventListener('focus', function() {
+    if (!this.value) {
+        const today = new Date();
+        const year = today.getFullYear();
+        const month = String(today.getMonth() + 1).padStart(2, '0');
+        const day = String(today.getDate()).padStart(2, '0');
+        const random = Math.floor(Math.random() * 1000).toString().padStart(3, '0');
+        this.value = `INV-${year}${month}${day}-${random}`;
+    }
+});
+</script>
+{% endblock %}

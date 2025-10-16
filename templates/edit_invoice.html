@@ -1,0 +1,108 @@
+{% extends "base.html" %}
+
+{% block title %}Edit Invoice {{ invoice.invoice_number }} - Credit Management System{% endblock %}
+
+{% block content %}
+<div class="row">
+    <div class="col-12">
+        <div class="d-flex justify-content-between align-items-center mb-4">
+            <h1>
+                <i class="fas fa-edit me-2"></i>Edit Invoice {{ invoice.invoice_number }}
+            </h1>
+            <a href="{{ url_for('view_invoice', invoice_id=invoice.id) }}" class="btn btn-outline-secondary">
+                <i class="fas fa-arrow-left me-1"></i>Back to Invoice
+            </a>
+        </div>
+    </div>
+</div>
+
+<div class="row">
+    <div class="col-md-8 mx-auto">
+        <div class="card">
+            <div class="card-header">
+                <h5 class="mb-0">
+                    <i class="fas fa-file-invoice me-2"></i>Edit Invoice Details
+                </h5>
+            </div>
+            <div class="card-body">
+                <form method="POST">
+                    <div class="row">
+                        <div class="col-md-6 mb-3">
+                            <label for="invoice_number" class="form-label">
+                                <i class="fas fa-hashtag me-1"></i>Invoice Number *
+                            </label>
+                            <input type="text" class="form-control" id="invoice_number" name="invoice_number" 
+                                   value="{{ invoice.invoice_number }}" required>
+                            <div class="form-text">Must be unique</div>
+                        </div>
+                        
+                        <div class="col-md-6 mb-3">
+                            <label for="salesman_id" class="form-label">
+                                <i class="fas fa-user me-1"></i>Salesman *
+                            </label>
+                            <select class="form-select" id="salesman_id" name="salesman_id" required>
+                                <option value="">Select Salesman</option>
+                                {% for salesman in salesmen %}
+                                <option value="{{ salesman.id }}" {% if salesman.id == invoice.salesman_id %}selected{% endif %}>
+                                    {{ salesman.name }} - {{ salesman.contact }}
+                                </option>
+                                {% endfor %}
+                            </select>
+                        </div>
+                    </div>
+                    
+                    <div class="row">
+                        <div class="col-md-6 mb-3">
+                            <label for="delivery_date" class="form-label">
+                                <i class="fas fa-calendar me-1"></i>Delivery Date *
+                            </label>
+                            <input type="date" class="form-control" id="delivery_date" name="delivery_date" 
+                                   value="{{ invoice.delivery_date.strftime('%Y-%m-%d') }}" required>
+                        </div>
+                        
+                        <div class="col-md-6 mb-3">
+                            <label for="bill_amount" class="form-label">
+                                <i class="fas fa-rupee-sign me-1"></i>Bill Amount *
+                            </label>
+                            <input type="number" class="form-control" id="bill_amount" name="bill_amount" 
+                                   value="{{ invoice.bill_amount }}" step="0.01" min="0" required>
+                        </div>
+                    </div>
+                    
+                    <!-- Current Status Info -->
+                    <div class="alert alert-info">
+                        <h6><i class="fas fa-info-circle me-1"></i>Current Status</h6>
+                        <div class="row">
+                            <div class="col-md-4">
+                                <strong>Total Credits:</strong> ₹{{ "%.2f"|format(invoice.total_credits) }}
+                            </div>
+                            <div class="col-md-4">
+                                <strong>Outstanding:</strong> ₹{{ "%.2f"|format(invoice.outstanding_balance) }}
+                            </div>
+                            <div class="col-md-4">
+                                <strong>Status:</strong> 
+                                {% if invoice.is_paid %}
+                                    <span class="badge bg-success">Paid</span>
+                                {% else %}
+                                    <span class="badge bg-warning">Pending</span>
+                                {% endif %}
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <div class="row">
+                        <div class="col-12">
+                            <button type="submit" class="btn btn-primary">
+                                <i class="fas fa-save me-1"></i>Update Invoice
+                            </button>
+                            <a href="{{ url_for('view_invoice', invoice_id=invoice.id) }}" class="btn btn-secondary ms-2">
+                                <i class="fas fa-times me-1"></i>Cancel
+                            </a>
+                        </div>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

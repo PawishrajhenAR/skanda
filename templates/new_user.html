@@ -1,0 +1,136 @@
+{% extends "base.html" %}
+
+{% block title %}Add User - Credit Management System{% endblock %}
+
+{% block content %}
+<div class="row">
+    <div class="col-12">
+        <div class="d-flex justify-content-between align-items-center mb-4">
+            <h1>
+                <i class="fas fa-user-plus me-2"></i>Add New User
+            </h1>
+            <a href="{{ url_for('users') }}" class="btn btn-outline-secondary">
+                <i class="fas fa-arrow-left me-1"></i>Back to Users
+            </a>
+        </div>
+    </div>
+</div>
+
+<div class="row">
+    <div class="col-md-8 mx-auto">
+        <div class="card">
+            <div class="card-header">
+                <h5 class="mb-0">
+                    <i class="fas fa-user me-2"></i>User Details
+                </h5>
+            </div>
+            <div class="card-body">
+                <form method="POST">
+                    <div class="row">
+                        <div class="col-md-6 mb-3">
+                            <label for="username" class="form-label">
+                                <i class="fas fa-user me-1"></i>Username *
+                            </label>
+                            <input type="text" class="form-control" id="username" name="username" required>
+                        </div>
+                        
+                        <div class="col-md-6 mb-3">
+                            <label for="email" class="form-label">
+                                <i class="fas fa-envelope me-1"></i>Email Address *
+                            </label>
+                            <input type="email" class="form-control" id="email" name="email" required>
+                        </div>
+                    </div>
+                    
+                    <div class="row">
+                        <div class="col-md-6 mb-3">
+                            <label for="password" class="form-label">
+                                <i class="fas fa-lock me-1"></i>Password *
+                            </label>
+                            <input type="password" class="form-control" id="password" name="password" required>
+                        </div>
+                        
+                        <div class="col-md-6 mb-3">
+                            <label for="role" class="form-label">
+                                <i class="fas fa-user-tag me-1"></i>Role *
+                            </label>
+                            <select class="form-select" id="role" name="role" required>
+                                <option value="">Select Role</option>
+                                <option value="admin">Admin</option>
+                                <option value="delivery">Delivery Person</option>
+                            </select>
+                        </div>
+                    </div>
+                    
+                    <div class="row">
+                        <div class="col-12">
+                            <div class="alert alert-info">
+                                <h6><i class="fas fa-info-circle me-1"></i>Role Permissions</h6>
+                                <ul class="mb-0">
+                                    <li><strong>Admin:</strong> Full access to all features including user management, customer management, and invoice deletion</li>
+                                    <li><strong>Delivery Person:</strong> Can add invoices and record credits, but cannot delete invoices or access admin-only features</li>
+                                </ul>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <div class="row">
+                        <div class="col-12">
+                            <button type="submit" class="btn btn-primary">
+                                <i class="fas fa-save me-1"></i>Add User
+                            </button>
+                            <a href="{{ url_for('users') }}" class="btn btn-secondary ms-2">
+                                <i class="fas fa-times me-1"></i>Cancel
+                            </a>
+                        </div>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+// Password strength indicator
+document.getElementById('password').addEventListener('input', function() {
+    const password = this.value;
+    const strength = getPasswordStrength(password);
+    
+    // Remove existing strength indicator
+    const existingIndicator = document.querySelector('.password-strength');
+    if (existingIndicator) {
+        existingIndicator.remove();
+    }
+    
+    // Add strength indicator
+    const indicator = document.createElement('div');
+    indicator.className = 'password-strength mt-2';
+    
+    if (password.length > 0) {
+        indicator.innerHTML = `
+            <div class="progress" style="height: 5px;">
+                <div class="progress-bar ${strength.color}" style="width: ${strength.width}%"></div>
+            </div>
+            <small class="text-${strength.color}">${strength.text}</small>
+        `;
+        this.parentNode.appendChild(indicator);
+    }
+});
+
+function getPasswordStrength(password) {
+    let score = 0;
+    
+    if (password.length >= 8) score++;
+    if (/[a-z]/.test(password)) score++;
+    if (/[A-Z]/.test(password)) score++;
+    if (/[0-9]/.test(password)) score++;
+    if (/[^A-Za-z0-9]/.test(password)) score++;
+    
+    if (score < 2) return { color: 'danger', width: 20, text: 'Weak' };
+    if (score < 4) return { color: 'warning', width: 60, text: 'Medium' };
+    return { color: 'success', width: 100, text: 'Strong' };
+}
+</script>
+{% endblock %}

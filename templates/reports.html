@@ -1,0 +1,304 @@
+{% extends "base.html" %}
+
+{% block title %}Reports - Credit Management System{% endblock %}
+
+{% block content %}
+<div class="row">
+    <div class="col-12">
+        <div class="d-flex justify-content-between align-items-center mb-4">
+            <h1>
+                <i class="fas fa-chart-bar me-2"></i>Reports & Analytics
+            </h1>
+        </div>
+    </div>
+</div>
+
+<!-- Filters -->
+<div class="row mb-4">
+    <div class="col-12">
+        <div class="card">
+            <div class="card-header">
+                <h5 class="mb-0">
+                    <i class="fas fa-filter me-2"></i>Filter Reports
+                </h5>
+            </div>
+            <div class="card-body">
+                <form method="GET" class="row g-3">
+                    <div class="col-md-3">
+                        <label for="salesman" class="form-label">Salesman</label>
+                        <select class="form-select" id="salesman" name="salesman">
+                            <option value="">All Salesmen</option>
+                            {% for salesman in salesmen %}
+                            <option value="{{ salesman.id }}" {% if request.args.get('salesman')|int == salesman.id %}selected{% endif %}>
+                                {{ salesman.name }}
+                            </option>
+                            {% endfor %}
+                        </select>
+                    </div>
+                    
+                    <div class="col-md-3">
+                        <label for="date_from" class="form-label">From Date</label>
+                        <input type="date" class="form-control" id="date_from" name="date_from" 
+                               value="{{ request.args.get('date_from', '') }}">
+                    </div>
+                    
+                    <div class="col-md-3">
+                        <label for="date_to" class="form-label">To Date</label>
+                        <input type="date" class="form-control" id="date_to" name="date_to" 
+                               value="{{ request.args.get('date_to', '') }}">
+                    </div>
+                    
+                    <div class="col-md-3 d-flex align-items-end">
+                        <button type="submit" class="btn btn-primary me-2">
+                            <i class="fas fa-search me-1"></i>Generate Report
+                        </button>
+                        <a href="{{ url_for('reports') }}" class="btn btn-outline-secondary">
+                            <i class="fas fa-times me-1"></i>Clear
+                        </a>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Summary Statistics -->
+<div class="row mb-4">
+    <div class="col-md-3 mb-3">
+        <div class="card stats-card stats-primary">
+            <div class="card-body">
+                <div class="d-flex justify-content-between align-items-center">
+                    <div>
+                        <h3 class="stats-number">{{ invoices|length }}</h3>
+                        <p class="stats-label">Total Invoices</p>
+                    </div>
+                    <div class="stats-icon">
+                        <i class="fas fa-file-invoice"></i>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+    
+    <div class="col-md-3 mb-3">
+        <div class="card stats-card stats-success">
+            <div class="card-body">
+                <div class="d-flex justify-content-between align-items-center">
+                    <div>
+                        <h3 class="stats-number">₹{{ "%.2f"|format(total_bill_amount) }}</h3>
+                        <p class="stats-label">Total Bill Amount</p>
+                    </div>
+                    <div class="stats-icon">
+                        <i class="fas fa-rupee-sign"></i>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+    
+    <div class="col-md-3 mb-3">
+        <div class="card stats-card stats-warning">
+            <div class="card-body">
+                <div class="d-flex justify-content-between align-items-center">
+                    <div>
+                        <h3 class="stats-number">₹{{ "%.2f"|format(total_collected) }}</h3>
+                        <p class="stats-label">Total Collected</p>
+                    </div>
+                    <div class="stats-icon">
+                        <i class="fas fa-credit-card"></i>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+    
+    <div class="col-md-3 mb-3">
+        <div class="card stats-card stats-info">
+            <div class="card-body">
+                <div class="d-flex justify-content-between align-items-center">
+                    <div>
+                        <h3 class="stats-number">{{ "%.1f"|format(collection_rate) }}%</h3>
+                        <p class="stats-label">Collection Rate</p>
+                    </div>
+                    <div class="stats-icon">
+                        <i class="fas fa-percentage"></i>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Detailed Report -->
+<div class="row">
+    <div class="col-12">
+        <div class="card">
+            <div class="card-header d-flex justify-content-between align-items-center">
+                <h5 class="mb-0">
+                    <i class="fas fa-table me-2"></i>Detailed Report
+                </h5>
+                <div>
+                    <a href="{{ url_for('export_excel', salesman=request.args.get('salesman'), date_from=request.args.get('date_from'), date_to=request.args.get('date_to')) }}" class="btn btn-sm btn-outline-success">
+                        <i class="fas fa-file-excel me-1"></i>Export Excel
+                    </a>
+                    <a href="{{ url_for('export_pdf', salesman=request.args.get('salesman'), date_from=request.args.get('date_from'), date_to=request.args.get('date_to')) }}" class="btn btn-sm btn-outline-danger">
+                        <i class="fas fa-file-pdf me-1"></i>Export PDF
+                    </a>
+                </div>
+            </div>
+            <div class="card-body">
+                {% if invoices %}
+                <div class="table-responsive">
+                    <table class="table table-hover" id="reportTable">
+                        <thead>
+                            <tr>
+                                <th>Invoice #</th>
+                                <th>Salesman</th>
+                                <th>Delivery Date</th>
+                                <th>Bill Amount</th>
+                                <th>Credits</th>
+                                <th>Outstanding</th>
+                                <th>Status</th>
+                                <th>Payment %</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            {% for invoice in invoices %}
+                            <tr>
+                                <td>{{ invoice.invoice_number }}</td>
+                                <td>{{ invoice.salesman.name }}</td>
+                                <td>{{ invoice.delivery_date.strftime('%Y-%m-%d') }}</td>
+                                <td>₹{{ "%.2f"|format(invoice.bill_amount) }}</td>
+                                <td>₹{{ "%.2f"|format(invoice.total_credits) }}</td>
+                                <td class="{% if invoice.outstanding_balance > 0 %}text-danger{% else %}text-success{% endif %}">
+                                    ₹{{ "%.2f"|format(invoice.outstanding_balance) }}
+                                </td>
+                                <td>
+                                    {% if invoice.is_paid %}
+                                        <span class="badge bg-success">Paid</span>
+                                    {% else %}
+                                        <span class="badge bg-warning">Pending</span>
+                                    {% endif %}
+                                </td>
+                                <td>
+                                    {% set progress_percentage = (invoice.total_credits / invoice.bill_amount * 100) if invoice.bill_amount > 0 else 0 %}
+                                    <div class="progress" style="height: 20px;">
+                                        <div class="progress-bar {% if invoice.is_paid %}bg-success{% else %}bg-warning{% endif %}" 
+                                             role="progressbar" 
+                                             style="width: {{ progress_percentage }}%"
+                                             title="{{ "%.1f"|format(progress_percentage) }}%">
+                                            {{ "%.1f"|format(progress_percentage) }}%
+                                        </div>
+                                    </div>
+                                </td>
+                            </tr>
+                            {% endfor %}
+                        </tbody>
+                    </table>
+                </div>
+                {% else %}
+                <div class="text-center py-5">
+                    <i class="fas fa-chart-bar fa-3x text-muted mb-3"></i>
+                    <h4 class="text-muted">No data found</h4>
+                    <p class="text-muted">Try adjusting your filter criteria.</p>
+                </div>
+                {% endif %}
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Salesman Performance -->
+{% if salesmen|length > 1 %}
+<div class="row mt-4">
+    <div class="col-12">
+        <div class="card">
+            <div class="card-header">
+                <h5 class="mb-0">
+                    <i class="fas fa-trophy me-2"></i>Salesman Performance
+                </h5>
+            </div>
+            <div class="card-body">
+                <div class="table-responsive">
+                    <table class="table table-hover">
+                        <thead>
+                            <tr>
+                                <th>Salesman</th>
+                                <th>Total Invoices</th>
+                                <th>Total Amount</th>
+                                <th>Collected</th>
+                                <th>Outstanding</th>
+                                <th>Collection Rate</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            {% for salesman in salesmen %}
+                            {% set salesman_invoices = invoices|selectattr('salesman_id', 'equalto', salesman.id)|list %}
+                            {% if salesman_invoices %}
+                            <tr>
+                                <td>{{ salesman.name }}</td>
+                                <td>{{ salesman_invoices|length }}</td>
+                                <td>₹{{ "%.2f"|format(salesman_invoices|sum(attribute='bill_amount')) }}</td>
+                                <td>₹{{ "%.2f"|format(salesman_invoices|sum(attribute='total_credits')) }}</td>
+                                <td>₹{{ "%.2f"|format(salesman_invoices|sum(attribute='outstanding_balance')) }}</td>
+                                <td>
+                                    {% set total_amount = salesman_invoices|sum(attribute='bill_amount') %}
+                                    {% set collected_amount = salesman_invoices|sum(attribute='total_credits') %}
+                                    {% set collection_rate = (collected_amount / total_amount * 100) if total_amount > 0 else 0 %}
+                                    <div class="progress" style="height: 20px;">
+                                        <div class="progress-bar bg-info" 
+                                             role="progressbar" 
+                                             style="width: {{ collection_rate }}%"
+                                             title="{{ "%.1f"|format(collection_rate) }}%">
+                                            {{ "%.1f"|format(collection_rate) }}%
+                                        </div>
+                                    </div>
+                                </td>
+                            </tr>
+                            {% endif %}
+                            {% endfor %}
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endif %}
+{% endblock %}
+
+{% block extra_js %}
+<script>
+function exportToExcel() {
+    // Simple Excel export using table data
+    const table = document.getElementById('reportTable');
+    if (!table) return;
+    
+    let csv = '';
+    const rows = table.querySelectorAll('tr');
+    
+    for (let i = 0; i < rows.length; i++) {
+        const cells = rows[i].querySelectorAll('td, th');
+        const row = [];
+        
+        for (let j = 0; j < cells.length; j++) {
+            row.push(cells[j].textContent.trim());
+        }
+        
+        csv += row.join(',') + '\n';
+    }
+    
+    const blob = new Blob([csv], { type: 'text/csv' });
+    const url = window.URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = 'credit_report_' + new Date().toISOString().split('T')[0] + '.csv';
+    a.click();
+    window.URL.revokeObjectURL(url);
+}
+
+function exportToPDF() {
+    alert('PDF export functionality would require additional libraries like jsPDF. This is a placeholder for future implementation.');
+}
+</script>
+{% endblock %}

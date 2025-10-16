@@ -1,0 +1,231 @@
+{% extends "base.html" %}
+
+{% block title %}Invoice {{ invoice.invoice_number }} - Credit Management System{% endblock %}
+
+{% block content %}
+<div class="row">
+    <div class="col-12">
+        <div class="d-flex justify-content-between align-items-center mb-4">
+            <h1>
+                <i class="fas fa-file-invoice me-2"></i>Invoice {{ invoice.invoice_number }}
+            </h1>
+            <div>
+                <a href="{{ url_for('upload_invoice_image', invoice_id=invoice.id) }}" class="btn btn-info me-2">
+                    <i class="fas fa-camera me-1"></i>Upload Image
+                </a>
+                <a href="{{ url_for('new_credit', invoice_id=invoice.id) }}" class="btn btn-success me-2">
+                    <i class="fas fa-plus me-1"></i>Add Credit
+                </a>
+                {% if session.role == 'admin' %}
+                <a href="{{ url_for('edit_invoice', invoice_id=invoice.id) }}" class="btn btn-warning me-2">
+                    <i class="fas fa-edit me-1"></i>Edit
+                </a>
+                {% endif %}
+                <a href="{{ url_for('invoices') }}" class="btn btn-outline-secondary">
+                    <i class="fas fa-arrow-left me-1"></i>Back
+                </a>
+            </div>
+        </div>
+    </div>
+</div>
+
+<div class="row">
+    <!-- Invoice Details -->
+    <div class="col-md-6 mb-4">
+        <div class="card">
+            <div class="card-header">
+                <h5 class="mb-0">
+                    <i class="fas fa-info-circle me-2"></i>Invoice Information
+                </h5>
+            </div>
+            <div class="card-body">
+                <table class="table table-borderless">
+                    <tr>
+                        <td><strong>Invoice Number:</strong></td>
+                        <td>{{ invoice.invoice_number }}</td>
+                    </tr>
+                    <tr>
+                        <td><strong>Salesman:</strong></td>
+                        <td>{{ invoice.salesman.name }}</td>
+                    </tr>
+                    <tr>
+                        <td><strong>Contact:</strong></td>
+                        <td>{{ invoice.salesman.contact }}</td>
+                    </tr>
+                    <tr>
+                        <td><strong>Delivery Date:</strong></td>
+                        <td>{{ invoice.delivery_date.strftime('%B %d, %Y') }}</td>
+                    </tr>
+                    <tr>
+                        <td><strong>Bill Amount:</strong></td>
+                        <td class="h5 text-primary">₹{{ "%.2f"|format(invoice.bill_amount) }}</td>
+                    </tr>
+                    <tr>
+                        <td><strong>Total Credits:</strong></td>
+                        <td class="h5 text-success">₹{{ "%.2f"|format(invoice.total_credits) }}</td>
+                    </tr>
+                    <tr>
+                        <td><strong>Outstanding Balance:</strong></td>
+                        <td class="h5 {% if invoice.outstanding_balance > 0 %}text-danger{% else %}text-success{% endif %}">
+                            ₹{{ "%.2f"|format(invoice.outstanding_balance) }}
+                        </td>
+                    </tr>
+                    <tr>
+                        <td><strong>Status:</strong></td>
+                        <td>
+                            {% if invoice.is_paid %}
+                                <span class="badge bg-success fs-6">Paid</span>
+                            {% else %}
+                                <span class="badge bg-warning fs-6">Pending</span>
+                            {% endif %}
+                        </td>
+                    </tr>
+                    <tr>
+                        <td><strong>Created:</strong></td>
+                        <td>{{ invoice.created_at.strftime('%B %d, %Y at %I:%M %p') }}</td>
+                    </tr>
+                </table>
+            </div>
+        </div>
+    </div>
+    
+    <!-- Payment Progress -->
+    <div class="col-md-6 mb-4">
+        <div class="card">
+            <div class="card-header">
+                <h5 class="mb-0">
+                    <i class="fas fa-chart-pie me-2"></i>Payment Progress
+                </h5>
+            </div>
+            <div class="card-body">
+                {% set progress_percentage = (invoice.total_credits / invoice.bill_amount * 100) if invoice.bill_amount > 0 else 0 %}
+                <div class="mb-3">
+                    <div class="d-flex justify-content-between mb-1">
+                        <span>Payment Progress</span>
+                        <span>{{ "%.1f"|format(progress_percentage) }}%</span>
+                    </div>
+                    <div class="progress" style="height: 20px;">
+                        <div class="progress-bar {% if invoice.is_paid %}bg-success{% else %}bg-warning{% endif %}" 
+                             role="progressbar" 
+                             style="width: {{ progress_percentage }}%"
+                             aria-valuenow="{{ progress_percentage }}" 
+                             aria-valuemin="0" 
+                             aria-valuemax="100">
+                        </div>
+                    </div>
+                </div>
+                
+                <div class="row text-center">
+                    <div class="col-6">
+                        <div class="border rounded p-3">
+                            <h4 class="text-primary mb-1">₹{{ "%.2f"|format(invoice.bill_amount) }}</h4>
+                            <small class="text-muted">Total Amount</small>
+                        </div>
+                    </div>
+                    <div class="col-6">
+                        <div class="border rounded p-3">
+                            <h4 class="text-success mb-1">₹{{ "%.2f"|format(invoice.total_credits) }}</h4>
+                            <small class="text-muted">Paid Amount</small>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Invoice Image and OCR Text -->
+{% if invoice.image_filename %}
+<div class="row">
+    <div class="col-12 mb-4">
+        <div class="card">
+            <div class="card-header">
+                <h5 class="mb-0">
+                    <i class="fas fa-image me-2"></i>Invoice Image & OCR Text
+                </h5>
+            </div>
+            <div class="card-body">
+                <div class="row">
+                    <div class="col-md-6">
+                        <h6><i class="fas fa-camera me-1"></i>Invoice Image:</h6>
+                        <img src="{{ url_for('view_invoice_image', invoice_id=invoice.id) }}" 
+                             class="img-fluid rounded shadow" 
+                             alt="Invoice Image"
+                             style="max-height: 400px;">
+                        <p class="text-muted mt-2">
+                            <small>
+                                <i class="fas fa-chart-line me-1"></i>
+                                OCR Confidence: {{ "%.1f"|format(invoice.ocr_confidence or 0) }}%
+                            </small>
+                        </p>
+                    </div>
+                    <div class="col-md-6">
+                        <h6><i class="fas fa-file-text me-1"></i>Extracted Text:</h6>
+                        <div class="card">
+                            <div class="card-body" style="max-height: 400px; overflow-y: auto;">
+                                {% if invoice.extracted_text %}
+                                    <pre style="white-space: pre-wrap; font-size: 0.9em; margin: 0;">{{ invoice.extracted_text }}</pre>
+                                {% else %}
+                                    <p class="text-muted">No text extracted from image.</p>
+                                {% endif %}
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endif %}
+
+<!-- Credits History -->
+<div class="row">
+    <div class="col-12">
+        <div class="card">
+            <div class="card-header d-flex justify-content-between align-items-center">
+                <h5 class="mb-0">
+                    <i class="fas fa-history me-2"></i>Payment History
+                </h5>
+                <span class="badge bg-info">{{ invoice.credits|length }} payment(s)</span>
+            </div>
+            <div class="card-body">
+                {% if invoice.credits %}
+                <div class="table-responsive">
+                    <table class="table table-hover">
+                        <thead>
+                            <tr>
+                                <th>Date</th>
+                                <th>Amount</th>
+                                <th>Method</th>
+                                <th>Notes</th>
+                                <th>Added By</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            {% for credit in invoice.credits %}
+                            <tr>
+                                <td>{{ credit.payment_date.strftime('%B %d, %Y') }}</td>
+                                <td class="text-success fw-bold">₹{{ "%.2f"|format(credit.amount) }}</td>
+                                <td>{{ credit.payment_method }}</td>
+                                <td>{{ credit.notes or '-' }}</td>
+                                <td>{{ credit.created_by }}</td>
+                            </tr>
+                            {% endfor %}
+                        </tbody>
+                    </table>
+                </div>
+                {% else %}
+                <div class="text-center py-4">
+                    <i class="fas fa-credit-card fa-3x text-muted mb-3"></i>
+                    <h5 class="text-muted">No payments recorded</h5>
+                    <p class="text-muted">Add the first payment for this invoice.</p>
+                    <a href="{{ url_for('new_credit', invoice_id=invoice.id) }}" class="btn btn-success">
+                        <i class="fas fa-plus me-1"></i>Add Payment
+                    </a>
+                </div>
+                {% endif %}
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

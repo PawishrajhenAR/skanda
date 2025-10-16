@@ -1,0 +1,272 @@
+{% extends "base.html" %}
+
+{% block title %}Dashboard - Credit Management System{% endblock %}
+
+{% block content %}
+<div class="row">
+    <div class="col-12">
+        <h1 class="mb-4">
+            <i class="fas fa-tachometer-alt me-2"></i>Dashboard
+        </h1>
+    </div>
+</div>
+
+<!-- Statistics Cards -->
+<div class="row mb-4">
+    <div class="col-lg-3 col-md-6 mb-3">
+        <div class="card stats-card stats-primary">
+            <div class="card-body">
+                <div class="d-flex justify-content-between align-items-center">
+                    <div>
+                        <h3 class="stats-number">{{ total_invoices }}</h3>
+                        <p class="stats-label">Total Invoices</p>
+                    </div>
+                    <div class="stats-icon">
+                        <i class="fas fa-file-invoice"></i>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+    
+    <div class="col-lg-3 col-md-6 mb-3">
+        <div class="card stats-card stats-warning">
+            <div class="card-body">
+                <div class="d-flex justify-content-between align-items-center">
+                    <div>
+                        <h3 class="stats-number">{{ total_pending }}</h3>
+                        <p class="stats-label">Pending Payments</p>
+                    </div>
+                    <div class="stats-icon">
+                        <i class="fas fa-clock"></i>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+    
+    <div class="col-lg-3 col-md-6 mb-3">
+        <div class="card stats-card stats-success">
+            <div class="card-body">
+                <div class="d-flex justify-content-between align-items-center">
+                    <div>
+                        <h3 class="stats-number">{{ total_paid }}</h3>
+                        <p class="stats-label">Paid Invoices</p>
+                    </div>
+                    <div class="stats-icon">
+                        <i class="fas fa-check-circle"></i>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+    
+    <div class="col-lg-3 col-md-6 mb-3">
+        <div class="card stats-card stats-info">
+            <div class="card-body">
+                <div class="d-flex justify-content-between align-items-center">
+                    <div>
+                        <h3 class="stats-number">{{ "%.1f"|format(collection_rate) }}%</h3>
+                        <p class="stats-label">Collection Rate</p>
+                    </div>
+                    <div class="stats-icon">
+                        <i class="fas fa-percentage"></i>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Financial Overview -->
+<div class="row mb-4">
+    <div class="col-md-4 mb-3">
+        <div class="card financial-card">
+            <div class="card-body text-center">
+                <div class="financial-icon mb-3">
+                    <i class="fas fa-rupee-sign"></i>
+                </div>
+                <h4 class="financial-amount">₹{{ "%.2f"|format(total_bill_amount) }}</h4>
+                <p class="financial-label">Total Bill Amount</p>
+            </div>
+        </div>
+    </div>
+    
+    <div class="col-md-4 mb-3">
+        <div class="card financial-card">
+            <div class="card-body text-center">
+                <div class="financial-icon mb-3">
+                    <i class="fas fa-credit-card"></i>
+                </div>
+                <h4 class="financial-amount">₹{{ "%.2f"|format(total_collected) }}</h4>
+                <p class="financial-label">Total Collected</p>
+            </div>
+        </div>
+    </div>
+    
+    <div class="col-md-4 mb-3">
+        <div class="card financial-card">
+            <div class="card-body text-center">
+                <div class="financial-icon mb-3">
+                    <i class="fas fa-exclamation-triangle"></i>
+                </div>
+                <h4 class="financial-amount">₹{{ "%.2f"|format(total_outstanding) }}</h4>
+                <p class="financial-label">Outstanding Balance</p>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Collection Rate Progress -->
+<div class="row mb-4">
+    <div class="col-12">
+        <div class="card">
+            <div class="card-header">
+                <h5 class="mb-0">
+                    <i class="fas fa-chart-line me-2"></i>Collection Performance
+                </h5>
+            </div>
+            <div class="card-body">
+                <div class="row align-items-center">
+                    <div class="col-md-8">
+                        <div class="collection-progress">
+                            <div class="d-flex justify-content-between mb-2">
+                                <span class="progress-label">Overall Collection Rate</span>
+                                <span class="progress-percentage">{{ "%.1f"|format(collection_rate) }}%</span>
+                            </div>
+                            <div class="progress collection-progress-bar">
+                                <div class="progress-bar {% if collection_rate >= 80 %}bg-success{% elif collection_rate >= 60 %}bg-warning{% else %}bg-danger{% endif %}" 
+                                     role="progressbar" 
+                                     style="width: {{ collection_rate }}%"
+                                     aria-valuenow="{{ collection_rate }}" 
+                                     aria-valuemin="0" 
+                                     aria-valuemax="100">
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="col-md-4 text-center">
+                        <div class="collection-status">
+                            {% if collection_rate >= 80 %}
+                                <i class="fas fa-trophy text-success fa-3x mb-2"></i>
+                                <h6 class="text-success">Excellent!</h6>
+                            {% elif collection_rate >= 60 %}
+                                <i class="fas fa-chart-line text-warning fa-3x mb-2"></i>
+                                <h6 class="text-warning">Good Progress</h6>
+                            {% else %}
+                                <i class="fas fa-exclamation-triangle text-danger fa-3x mb-2"></i>
+                                <h6 class="text-danger">Needs Attention</h6>
+                            {% endif %}
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Quick Actions -->
+<div class="row mb-4">
+    <div class="col-12">
+        <div class="card">
+            <div class="card-header">
+                <h5 class="mb-0">
+                    <i class="fas fa-bolt me-2"></i>Quick Actions
+                </h5>
+            </div>
+            <div class="card-body">
+                <div class="row">
+                    <div class="col-md-3 mb-2">
+                        <a href="{{ url_for('new_invoice') }}" class="btn btn-primary w-100">
+                            <i class="fas fa-plus me-1"></i>New Invoice
+                        </a>
+                    </div>
+                    <div class="col-md-3 mb-2">
+                        <a href="{{ url_for('invoices') }}" class="btn btn-info w-100">
+                            <i class="fas fa-list me-1"></i>View Invoices
+                        </a>
+                    </div>
+                    {% if session.role == 'admin' %}
+                    <div class="col-md-3 mb-2">
+                        <a href="{{ url_for('new_salesman') }}" class="btn btn-success w-100">
+                            <i class="fas fa-user-plus me-1"></i>Add Salesman
+                        </a>
+                    </div>
+                    {% endif %}
+                    <div class="col-md-3 mb-2">
+                        <a href="{{ url_for('reports') }}" class="btn btn-warning w-100">
+                            <i class="fas fa-chart-bar me-1"></i>Reports
+                        </a>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Recent Invoices -->
+<div class="row">
+    <div class="col-12">
+        <div class="card">
+            <div class="card-header d-flex justify-content-between align-items-center">
+                <h5 class="mb-0">
+                    <i class="fas fa-history me-2"></i>Recent Invoices
+                </h5>
+                <a href="{{ url_for('invoices') }}" class="btn btn-sm btn-outline-primary">View All</a>
+            </div>
+            <div class="card-body">
+                {% if recent_invoices %}
+                <div class="table-responsive">
+                    <table class="table table-hover">
+                        <thead>
+                            <tr>
+                                <th>Invoice #</th>
+                                <th>Salesman</th>
+                                <th>Delivery Date</th>
+                                <th>Bill Amount</th>
+                                <th>Outstanding</th>
+                                <th>Status</th>
+                                <th>Actions</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            {% for invoice in recent_invoices %}
+                            <tr>
+                                <td>{{ invoice.invoice_number }}</td>
+                                <td>{{ invoice.salesman.name }}</td>
+                                <td>{{ invoice.delivery_date.strftime('%Y-%m-%d') }}</td>
+                                <td>₹{{ "%.2f"|format(invoice.bill_amount) }}</td>
+                                <td>₹{{ "%.2f"|format(invoice.outstanding_balance) }}</td>
+                                <td>
+                                    {% if invoice.is_paid %}
+                                        <span class="badge bg-success">Paid</span>
+                                    {% else %}
+                                        <span class="badge bg-warning">Pending</span>
+                                    {% endif %}
+                                </td>
+                                <td>
+                                    <a href="{{ url_for('view_invoice', invoice_id=invoice.id) }}" class="btn btn-sm btn-outline-primary">
+                                        <i class="fas fa-eye"></i>
+                                    </a>
+                                    {% if session.role == 'admin' %}
+                                    <a href="{{ url_for('edit_invoice', invoice_id=invoice.id) }}" class="btn btn-sm btn-outline-secondary">
+                                        <i class="fas fa-edit"></i>
+                                    </a>
+                                    {% endif %}
+                                </td>
+                            </tr>
+                            {% endfor %}
+                        </tbody>
+                    </table>
+                </div>
+                {% else %}
+                <div class="text-center py-4">
+                    <i class="fas fa-inbox fa-3x text-muted mb-3"></i>
+                    <p class="text-muted">No invoices found. <a href="{{ url_for('new_invoice') }}">Create your first invoice</a></p>
+                </div>
+                {% endif %}
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

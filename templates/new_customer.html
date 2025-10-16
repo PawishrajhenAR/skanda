@@ -1,0 +1,138 @@
+{% extends "base.html" %}
+
+{% block title %}Add Customer - Credit Management System{% endblock %}
+
+{% block content %}
+<div class="row">
+    <div class="col-12">
+        <div class="d-flex justify-content-between align-items-center mb-4">
+            <h1>
+                <i class="fas fa-building me-2"></i>Add New Customer
+            </h1>
+            <a href="{{ url_for('customers') }}" class="btn btn-outline-secondary">
+                <i class="fas fa-arrow-left me-1"></i>Back to Customers
+            </a>
+        </div>
+    </div>
+</div>
+
+<div class="row">
+    <div class="col-md-8 mx-auto">
+        <div class="card">
+            <div class="card-header">
+                <h5 class="mb-0">
+                    <i class="fas fa-building me-2"></i>Customer Details
+                </h5>
+            </div>
+            <div class="card-body">
+                <form method="POST">
+                    <div class="row">
+                        <div class="col-md-6 mb-3">
+                            <label for="name" class="form-label">
+                                <i class="fas fa-user me-1"></i>Customer Name *
+                            </label>
+                            <input type="text" class="form-control" id="name" name="name" required>
+                        </div>
+                        
+                        <div class="col-md-6 mb-3">
+                            <label for="company_name" class="form-label">
+                                <i class="fas fa-building me-1"></i>Company Name
+                            </label>
+                            <input type="text" class="form-control" id="company_name" name="company_name">
+                            <div class="form-text">Optional</div>
+                        </div>
+                    </div>
+                    
+                    <div class="row">
+                        <div class="col-md-6 mb-3">
+                            <label for="contact" class="form-label">
+                                <i class="fas fa-phone me-1"></i>Contact Number *
+                            </label>
+                            <input type="tel" class="form-control" id="contact" name="contact" required>
+                        </div>
+                        
+                        <div class="col-md-6 mb-3">
+                            <label for="email" class="form-label">
+                                <i class="fas fa-envelope me-1"></i>Email Address
+                            </label>
+                            <input type="email" class="form-control" id="email" name="email">
+                            <div class="form-text">Optional</div>
+                        </div>
+                    </div>
+                    
+                    <div class="row">
+                        <div class="col-md-6 mb-3">
+                            <label for="gst_number" class="form-label">
+                                <i class="fas fa-receipt me-1"></i>GST Number
+                            </label>
+                            <input type="text" class="form-control" id="gst_number" name="gst_number">
+                            <div class="form-text">Optional</div>
+                        </div>
+                        
+                        <div class="col-md-6 mb-3">
+                            <label for="credit_limit" class="form-label">
+                                <i class="fas fa-credit-card me-1"></i>Credit Limit
+                            </label>
+                            <input type="number" class="form-control" id="credit_limit" name="credit_limit" step="0.01" min="0" value="0">
+                            <div class="form-text">Maximum credit amount</div>
+                        </div>
+                    </div>
+                    
+                    <div class="row">
+                        <div class="col-12 mb-3">
+                            <label for="address" class="form-label">
+                                <i class="fas fa-map-marker-alt me-1"></i>Address
+                            </label>
+                            <textarea class="form-control" id="address" name="address" rows="3"></textarea>
+                            <div class="form-text">Optional</div>
+                        </div>
+                    </div>
+                    
+                    <div class="row">
+                        <div class="col-12">
+                            <button type="submit" class="btn btn-primary">
+                                <i class="fas fa-save me-1"></i>Add Customer
+                            </button>
+                            <a href="{{ url_for('customers') }}" class="btn btn-secondary ms-2">
+                                <i class="fas fa-times me-1"></i>Cancel
+                            </a>
+                        </div>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+// Format phone number
+document.getElementById('contact').addEventListener('input', function() {
+    let value = this.value.replace(/\D/g, '');
+    if (value.length > 10) {
+        value = value.substring(0, 10);
+    }
+    this.value = value;
+});
+
+// Validate phone number
+document.getElementById('contact').addEventListener('blur', function() {
+    const phoneRegex = /^[6-9]\d{9}$/;
+    if (this.value && !phoneRegex.test(this.value)) {
+        this.setCustomValidity('Please enter a valid 10-digit mobile number');
+    } else {
+        this.setCustomValidity('');
+    }
+});
+
+// Format GST number
+document.getElementById('gst_number').addEventListener('input', function() {
+    let value = this.value.replace(/\D/g, '');
+    if (value.length > 15) {
+        value = value.substring(0, 15);
+    }
+    this.value = value;
+});
+</script>
+{% endblock %}

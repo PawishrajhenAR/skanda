@@ -1,0 +1,120 @@
+{% extends "base.html" %}
+
+{% block title %}Edit Salesman - {{ salesman.name }} - Credit Management System{% endblock %}
+
+{% block content %}
+<div class="row">
+    <div class="col-12">
+        <div class="d-flex justify-content-between align-items-center mb-4">
+            <h1>
+                <i class="fas fa-user-edit me-2"></i>Edit Salesman: {{ salesman.name }}
+            </h1>
+            <a href="{{ url_for('salesmen') }}" class="btn btn-outline-secondary">
+                <i class="fas fa-arrow-left me-1"></i>Back to Salesmen
+            </a>
+        </div>
+    </div>
+</div>
+
+<div class="row">
+    <div class="col-md-8 mx-auto">
+        <div class="card">
+            <div class="card-header">
+                <h5 class="mb-0">
+                    <i class="fas fa-user me-2"></i>Salesman Details
+                </h5>
+            </div>
+            <div class="card-body">
+                <form method="POST">
+                    <div class="row">
+                        <div class="col-md-6 mb-3">
+                            <label for="name" class="form-label">
+                                <i class="fas fa-user me-1"></i>Full Name *
+                            </label>
+                            <input type="text" class="form-control" id="name" name="name" 
+                                   value="{{ salesman.name }}" required>
+                        </div>
+                        
+                        <div class="col-md-6 mb-3">
+                            <label for="contact" class="form-label">
+                                <i class="fas fa-phone me-1"></i>Contact Number *
+                            </label>
+                            <input type="tel" class="form-control" id="contact" name="contact" 
+                                   value="{{ salesman.contact }}" required>
+                        </div>
+                    </div>
+                    
+                    <div class="row">
+                        <div class="col-md-6 mb-3">
+                            <label for="email" class="form-label">
+                                <i class="fas fa-envelope me-1"></i>Email Address
+                            </label>
+                            <input type="email" class="form-control" id="email" name="email" 
+                                   value="{{ salesman.email or '' }}">
+                            <div class="form-text">Optional</div>
+                        </div>
+                        
+                        <div class="col-md-6 mb-3">
+                            <label for="address" class="form-label">
+                                <i class="fas fa-map-marker-alt me-1"></i>Address
+                            </label>
+                            <textarea class="form-control" id="address" name="address" rows="3">{{ salesman.address or '' }}</textarea>
+                            <div class="form-text">Optional</div>
+                        </div>
+                    </div>
+                    
+                    <!-- Salesman Statistics -->
+                    <div class="alert alert-info">
+                        <h6><i class="fas fa-chart-bar me-1"></i>Salesman Statistics</h6>
+                        <div class="row">
+                            <div class="col-md-4">
+                                <strong>Total Invoices:</strong> {{ salesman.invoices|length }}
+                            </div>
+                            <div class="col-md-4">
+                                <strong>Created:</strong> {{ salesman.created_at.strftime('%B %d, %Y') }}
+                            </div>
+                            <div class="col-md-4">
+                                <strong>Last Updated:</strong> {{ salesman.created_at.strftime('%B %d, %Y') }}
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <div class="row">
+                        <div class="col-12">
+                            <button type="submit" class="btn btn-primary">
+                                <i class="fas fa-save me-1"></i>Update Salesman
+                            </button>
+                            <a href="{{ url_for('salesmen') }}" class="btn btn-secondary ms-2">
+                                <i class="fas fa-times me-1"></i>Cancel
+                            </a>
+                        </div>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+// Format phone number
+document.getElementById('contact').addEventListener('input', function() {
+    let value = this.value.replace(/\D/g, '');
+    if (value.length > 10) {
+        value = value.substring(0, 10);
+    }
+    this.value = value;
+});
+
+// Validate phone number
+document.getElementById('contact').addEventListener('blur', function() {
+    const phoneRegex = /^[6-9]\d{9}$/;
+    if (this.value && !phoneRegex.test(this.value)) {
+        this.setCustomValidity('Please enter a valid 10-digit mobile number');
+    } else {
+        this.setCustomValidity('');
+    }
+});
+</script>
+{% endblock %}
