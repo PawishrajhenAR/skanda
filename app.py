@@ -256,30 +256,34 @@ def invoices():
 @login_required
 def new_invoice():
     if request.method == 'POST':
-        invoice_number = request.form['invoice_number']
-        salesman_id = request.form['salesman_id']
-        delivery_date = datetime.strptime(request.form['delivery_date'], '%Y-%m-%d').date()
-        bill_amount = float(request.form['bill_amount'])
-        
-        # Check for duplicate invoice number
-        existing_invoice = Invoice.query.filter_by(invoice_number=invoice_number).first()
-        if existing_invoice:
-            flash('Invoice number already exists!', 'error')
+        try:
+            invoice_number = request.form['invoice_number']
+            salesman_id = request.form['salesman_id']
+            delivery_date = datetime.strptime(request.form['delivery_date'], '%Y-%m-%d').date()
+            bill_amount = float(request.form['bill_amount'])
+            
+            # Check for duplicate invoice number
+            existing_invoice = Invoice.query.filter_by(invoice_number=invoice_number).first()
+            if existing_invoice:
+                flash('Invoice number already exists!', 'error')
+                return render_template('new_invoice.html', salesmen=Salesman.query.all())
+            
+            invoice = Invoice(
+                invoice_number=invoice_number,
+                salesman_id=salesman_id,
+                delivery_date=delivery_date,
+                bill_amount=bill_amount,
+                created_by=session['user_id']
+            )
+            
+            db.session.add(invoice)
+            db.session.commit()
+            
+            flash('Invoice created successfully!', 'success')
+            return redirect(url_for('invoices'))
+        except Exception as e:
+            flash(f'Error creating invoice: {str(e)}', 'error')
             return render_template('new_invoice.html', salesmen=Salesman.query.all())
-        
-        invoice = Invoice(
-            invoice_number=invoice_number,
-            salesman_id=salesman_id,
-            delivery_date=delivery_date,
-            bill_amount=bill_amount,
-            created_by=session['user_id']
-        )
-        
-        db.session.add(invoice)
-        db.session.commit()
-        
-        flash('Invoice created successfully!', 'success')
-        return redirect(url_for('invoices'))
     
     return render_template('new_invoice.html', salesmen=Salesman.query.all())
 
@@ -331,30 +335,34 @@ def upload_invoice_image(invoice_id):
             return redirect(request.url)
         
         if file and allowed_file(file.filename):
-            # Create upload directory if it doesn't exist
-            upload_dir = os.path.join(app.root_path, app.config['UPLOAD_FOLDER'])
-            os.makedirs(upload_dir, exist_ok=True)
-            
-            # Generate unique filename
-            file_extension = file.filename.rsplit('.', 1)[1].lower()
-            filename = f"invoice_{invoice_id}_{uuid.uuid4().hex}.{file_extension}"
-            file_path = os.path.join(upload_dir, filename)
-            
-            # Save file
-            file.save(file_path)
-            
-            # Extract text using OCR
-            extracted_text, confidence = extract_text_from_image(file_path)
-            
-            # Update invoice with image info
-            invoice.image_filename = filename
-            invoice.extracted_text = extracted_text
-            invoice.ocr_confidence = confidence
-            
-            db.session.commit()
-            
-            flash(f'Image uploaded successfully! OCR confidence: {confidence:.1f}%', 'success')
-            return redirect(url_for('view_invoice', invoice_id=invoice_id))
+            try:
+                # Create upload directory if it doesn't exist
+                upload_dir = os.path.join(app.root_path, app.config['UPLOAD_FOLDER'])
+                os.makedirs(upload_dir, exist_ok=True)
+                
+                # Generate unique filename
+                file_extension = file.filename.rsplit('.', 1)[1].lower()
+                filename = f"invoice_{invoice_id}_{uuid.uuid4().hex}.{file_extension}"
+                file_path = os.path.join(upload_dir, filename)
+                
+                # Save file
+                file.save(file_path)
+                
+                # Extract text using OCR
+                extracted_text, confidence = extract_text_from_image(file_path)
+                
+                # Update invoice with image info
+                invoice.image_filename = filename
+                invoice.extracted_text = extracted_text
+                invoice.ocr_confidence = confidence
+                
+                db.session.commit()
+                
+                flash(f'Image uploaded successfully! OCR confidence: {confidence:.1f}%', 'success')
+                return redirect(url_for('view_invoice', invoice_id=invoice_id))
+            except Exception as e:
+                flash(f'Image upload failed: {str(e)}. OCR feature may not be available in serverless environment.', 'error')
+                return redirect(url_for('view_invoice', invoice_id=invoice_id))
         else:
             flash('Invalid file type. Please upload a valid image file.', 'error')
     
@@ -761,4 +769,8 @@ if __name__ == '__main__':
     app.run(debug=True, host='0.0.0.0', port=5001)
 else:
     # Initialize database when running on Vercel
-    init_db()
+    try:
+        init_db()
+    except Exception as e:
+        print(f"Database initialization error: {e}")
+        # Continue anyway, database might already exist
