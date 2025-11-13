@@ -3131,65 +3131,73 @@ def verify_ocr_bill_final(bill_id):
 
 # Initialize database
 def create_tables():
+    """Create database tables and seed default data."""
+    # Create tables (idempotent - safe to call multiple times)
     db.create_all()
     
     # Create default users if none exist
-    if not User.query.filter_by(role='admin').first():
-        admin = User(
-            username='admin', 
-            email='admin@skanda.com', 
-            role='admin',
-            full_name='System Administrator',
-            phone='+91-0000000000',
-            is_active=True
-        )
-        admin.set_password('admin123')
-        db.session.add(admin)
-        print("✅ Default admin user created: username='admin', password='admin123'")
-    
-    # Create sample delivery man
-    if not User.query.filter_by(role='delivery_man').first():
-        delivery = User(
-            username='delivery1',
-            email='delivery@skanda.com',
-            role='delivery_man',
-            full_name='Delivery Man 1',
-            phone='+91-1111111111',
-            is_active=True
-        )
-        delivery.set_password('delivery123')
-        db.session.add(delivery)
-        print("✅ Default delivery man created: username='delivery1', password='delivery123'")
-    
-    # Create sample salesman
-    if not User.query.filter_by(role='salesman').first():
-        salesman = User(
-            username='salesman1',
-            email='salesman@skanda.com',
-            role='salesman',
-            full_name='Salesman 1',
-            phone='+91-2222222222',
-            is_active=True
-        )
-        salesman.set_password('salesman123')
-        db.session.add(salesman)
-        print("✅ Default salesman created: username='salesman1', password='salesman123'")
-    
-    # Create sample computer organiser
-    if not User.query.filter_by(role='computer_organiser').first():
-        organiser = User(
-            username='organiser1',
-            email='organiser@skanda.com',
-            role='computer_organiser',
-            full_name='Computer Organiser 1',
-            phone='+91-3333333333',
-            is_active=True
-        )
-        organiser.set_password('organiser123')
-        db.session.add(organiser)
-        print("✅ Default computer organiser created: username='organiser1', password='organiser123'")
-    
+    try:
+        if not User.query.filter_by(role='admin').first():
+            admin = User(
+                username='admin', 
+                email='admin@skanda.com', 
+                role='admin',
+                full_name='System Administrator',
+                phone='+91-0000000000',
+                is_active=True
+            )
+            admin.set_password('admin123')
+            db.session.add(admin)
+            print("✅ Default admin user created: username='admin', password='admin123'")
+        
+        # Create sample delivery man
+        if not User.query.filter_by(role='delivery_man').first():
+            delivery = User(
+                username='delivery1',
+                email='delivery@skanda.com',
+                role='delivery_man',
+                full_name='Delivery Man 1',
+                phone='+91-1111111111',
+                is_active=True
+            )
+            delivery.set_password('delivery123')
+            db.session.add(delivery)
+            print("✅ Default delivery man created: username='delivery1', password='delivery123'")
+        
+        # Create sample salesman
+        if not User.query.filter_by(role='salesman').first():
+            salesman = User(
+                username='salesman1',
+                email='salesman@skanda.com',
+                role='salesman',
+                full_name='Salesman 1',
+                phone='+91-2222222222',
+                is_active=True
+            )
+            salesman.set_password('salesman123')
+            db.session.add(salesman)
+            print("✅ Default salesman created: username='salesman1', password='salesman123'")
+        
+        # Create sample computer organiser
+        if not User.query.filter_by(role='computer_organiser').first():
+            organiser = User(
+                username='organiser1',
+                email='organiser@skanda.com',
+                role='computer_organiser',
+                full_name='Computer Organiser 1',
+                phone='+91-3333333333',
+                is_active=True
+            )
+            organiser.set_password('organiser123')
+            db.session.add(organiser)
+            print("✅ Default computer organiser created: username='organiser1', password='organiser123'")
+        
         db.session.commit()
+        print("✅ Default users seeded successfully")
+    except Exception as e:
+        print(f"⚠️  Error seeding default users: {e}")
+        db.session.rollback()
+        # Don't raise - tables are created, default users are optional
 
 # Initialize database (lazy initialization for Vercel)
 _db_initialized = False
@@ -3203,26 +3211,65 @@ def init_db():
     try:
         with app.app_context():
             # Warn about SQLite limitations on Vercel
-            if os.environ.get('VERCEL') and app.config['SQLALCHEMY_DATABASE_URI'].startswith('sqlite'):
+            db_uri = app.config['SQLALCHEMY_DATABASE_URI']
+            if os.environ.get('VERCEL') and db_uri.startswith('sqlite'):
                 print("⚠️  WARNING: SQLite on Vercel uses /tmp which is ephemeral. Data will be lost between deployments.")
                 print("⚠️  For production, use Vercel Postgres or another managed database service.")
+                print(f"⚠️  Database path: {db_uri}")
+            
+            # Ensure database directory exists for SQLite
+            if db_uri.startswith('sqlite'):
+                db_path = db_uri.replace('sqlite:///', '').replace('sqlite:////', '')
+                if db_path and not os.path.isabs(db_path):
+                    db_path = os.path.join(app.root_path, db_path)
+                elif db_path and os.path.isabs(db_path):
+                    db_dir = os.path.dirname(db_path)
+                    if db_dir and not os.path.exists(db_dir):
+                        os.makedirs(db_dir, exist_ok=True)
+                        print(f"✅ Created database directory: {db_dir}")
+            
+            # Always try to create tables (db.create_all() is idempotent)
+            print("🔄 Initializing database tables...")
+            try:
+                db.create_all()
+                print("✅ Database tables created/verified successfully")
+            except Exception as create_error:
+                print(f"❌ Error creating tables: {create_error}")
+                import traceback
+                traceback.print_exc()
+                raise
             
             # Check if tables exist by trying to query
             try:
-                User.query.limit(1).all()
-                _db_initialized = True
-                return
-            except Exception:
-                pass
+                # Try to query User table to verify it exists
+                from sqlalchemy import inspect
+                inspector = inspect(db.engine)
+                tables = inspector.get_table_names()
+                print(f"📊 Database tables found: {', '.join(tables) if tables else 'None'}")
+                
+                if 'user' in tables:
+                    User.query.limit(1).all()
+                    print("✅ Database tables are accessible")
+                else:
+                    print("⚠️  User table not found, creating default data...")
+                    create_tables()
+            except Exception as check_error:
+                print(f"⚠️  Could not verify tables, but continuing: {check_error}")
+                # Still try to create default data
+                try:
+                    create_tables()
+                except Exception as seed_error:
+                    print(f"⚠️  Could not seed default data: {seed_error}")
             
-            # Create tables if they don't exist
-            create_tables()
             _db_initialized = True
+            print("✅ Database initialization complete")
+            
     except Exception as e:
-        print(f"Database initialization error: {e}")
+        print(f"❌ Database initialization error: {e}")
         import traceback
         traceback.print_exc()
         # Don't set _db_initialized to True on error, allow retry
+        raise
 
 # Initialize database on first request (Flask 2.3+ compatible)
 @app.before_request
