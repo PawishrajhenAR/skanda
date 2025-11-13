@@ -19,11 +19,5 @@
   "env": {
     "PYTHONPATH": "/var/task",
     "VERCEL": "1"
-  },
-  "functions": {
-    "wsgi.py": {
-      "maxDuration": 60,
-      "memory": 3008
-    }
   }
 }
