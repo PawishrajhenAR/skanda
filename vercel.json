@@ -8,11 +8,22 @@
   ],
   "routes": [
     {
+      "src": "/static/(.*)",
+      "dest": "/static/$1"
+    },
+    {
       "src": "/(.*)",
       "dest": "wsgi.py"
     }
   ],
   "env": {
-    "PYTHONPATH": "/var/task"
+    "PYTHONPATH": "/var/task",
+    "VERCEL": "1"
+  },
+  "functions": {
+    "wsgi.py": {
+      "maxDuration": 60,
+      "memory": 3008
+    }
   }
 }

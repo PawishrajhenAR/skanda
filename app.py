@@ -36,9 +36,24 @@ from reportlab.lib.units import inch
 
 app = Flask(__name__)
 app.config['SECRET_KEY'] = os.environ.get('SECRET_KEY', 'skanda-enterprises-credit-management-2024')
-app.config['SQLALCHEMY_DATABASE_URI'] = os.environ.get('DATABASE_URL', 'sqlite:///credit_management.db')
+
+# Database configuration for Vercel compatibility
+database_url = os.environ.get('DATABASE_URL', 'sqlite:///credit_management.db')
+# Handle Vercel Postgres URL format (postgres:// -> postgresql://)
+if database_url.startswith('postgres://'):
+    database_url = database_url.replace('postgres://', 'postgresql://', 1)
+# For SQLite on Vercel, use /tmp directory (only writable location)
+if database_url.startswith('sqlite:///') and os.environ.get('VERCEL'):
+    db_name = database_url.replace('sqlite:///', '')
+    database_url = f'sqlite:////tmp/{db_name}'
+
+app.config['SQLALCHEMY_DATABASE_URI'] = database_url
 app.config['SQLALCHEMY_TRACK_MODIFICATIONS'] = False
-app.config['UPLOAD_FOLDER'] = 'static/uploads'
+# For Vercel, use /tmp for uploads (only writable location in serverless)
+if os.environ.get('VERCEL'):
+    app.config['UPLOAD_FOLDER'] = os.environ.get('UPLOAD_FOLDER', '/tmp/uploads')
+else:
+    app.config['UPLOAD_FOLDER'] = os.environ.get('UPLOAD_FOLDER', 'static/uploads')
 app.config['MAX_CONTENT_LENGTH'] = 16 * 1024 * 1024  # 16MB max file size
 
 db = SQLAlchemy(app)
@@ -978,7 +993,10 @@ def upload_invoice_image(invoice_id):
         if file and allowed_file(file.filename):
             try:
                 # Create upload directory if it doesn't exist
-                upload_dir = os.path.join(app.root_path, app.config['UPLOAD_FOLDER'])
+                upload_dir = app.config['UPLOAD_FOLDER']
+                # For relative paths, join with root_path; for absolute paths (like /tmp), use as-is
+                if not os.path.isabs(upload_dir):
+                    upload_dir = os.path.join(app.root_path, upload_dir)
                 os.makedirs(upload_dir, exist_ok=True)
                 
                 # Generate unique filename
@@ -1003,9 +1021,14 @@ def upload_invoice_image(invoice_id):
                 db.session.commit()
                 
                 flash(f'Image uploaded successfully! OCR confidence: {confidence:.1f}%', 'success')
+                if os.environ.get('VERCEL'):
+                    flash('Note: Files uploaded on Vercel are stored temporarily and may not persist. Consider using cloud storage for production.', 'info')
                 return redirect(url_for('view_invoice', invoice_id=invoice_id))
             except Exception as e:
-                flash(f'Image upload failed: {str(e)}. OCR feature may not be available in serverless environment.', 'error')
+                error_msg = f'Image upload failed: {str(e)}'
+                if os.environ.get('VERCEL'):
+                    error_msg += ' Note: File uploads in serverless environments have limitations. Files are stored in /tmp and may not persist.'
+                flash(error_msg, 'error')
                 return redirect(url_for('view_invoice', invoice_id=invoice_id))
         else:
             flash('Invalid file type. Please upload a valid image file.', 'error')
@@ -1021,7 +1044,10 @@ def view_invoice_image(invoice_id):
         flash('No image available for this invoice.', 'error')
         return redirect(url_for('view_invoice', invoice_id=invoice_id))
     
-    image_path = os.path.join(app.config['UPLOAD_FOLDER'], invoice.image_filename)
+    upload_base = app.config['UPLOAD_FOLDER']
+    if not os.path.isabs(upload_base):
+        upload_base = os.path.join(app.root_path, upload_base)
+    image_path = os.path.join(upload_base, invoice.image_filename)
     return send_file(image_path)
 
 @app.route('/invoices/<int:invoice_id>/credits/new', methods=['GET', 'POST'])
@@ -1369,7 +1395,7 @@ def upload_ocr_bill():
                 flash('No image file selected.', 'error')
                 return redirect(url_for('upload_ocr_bill'))
             
-                file = request.files['image']
+            file = request.files['image']
             if not file or not file.filename:
                 flash('No image file selected.', 'error')
                 return redirect(url_for('upload_ocr_bill'))
@@ -1379,7 +1405,10 @@ def upload_ocr_bill():
                 return redirect(url_for('upload_ocr_bill'))
             
             # Save uploaded file temporarily
-            upload_dir = os.path.join(app.root_path, app.config['UPLOAD_FOLDER'], 'temp')
+            upload_base = app.config['UPLOAD_FOLDER']
+            if not os.path.isabs(upload_base):
+                upload_base = os.path.join(app.root_path, upload_base)
+            upload_dir = os.path.join(upload_base, 'temp')
             os.makedirs(upload_dir, exist_ok=True)
             
             file_extension = file.filename.rsplit('.', 1)[1].lower()
@@ -1461,8 +1490,11 @@ def verify_ocr_bill():
             # Move temp file to permanent location
             temp_filename = session.get('temp_bill_file')
             if temp_filename:
-                temp_dir = os.path.join(app.root_path, app.config['UPLOAD_FOLDER'], 'temp')
-                perm_dir = os.path.join(app.root_path, app.config['UPLOAD_FOLDER'])
+                upload_base = app.config['UPLOAD_FOLDER']
+                if not os.path.isabs(upload_base):
+                    upload_base = os.path.join(app.root_path, upload_base)
+                temp_dir = os.path.join(upload_base, 'temp')
+                perm_dir = upload_base
                 temp_path = os.path.join(temp_dir, temp_filename)
                 
                 file_extension = temp_filename.rsplit('.', 1)[1].lower()
@@ -3159,19 +3191,50 @@ def create_tables():
     
         db.session.commit()
 
-# Initialize database
-def init_db():
-    with app.app_context():
-        create_tables()
+# Initialize database (lazy initialization for Vercel)
+_db_initialized = False
 
-# For Vercel deployment
+def init_db():
+    """Initialize database tables. Safe to call multiple times."""
+    global _db_initialized
+    if _db_initialized:
+        return
+    
+    try:
+        with app.app_context():
+            # Warn about SQLite limitations on Vercel
+            if os.environ.get('VERCEL') and app.config['SQLALCHEMY_DATABASE_URI'].startswith('sqlite'):
+                print("⚠️  WARNING: SQLite on Vercel uses /tmp which is ephemeral. Data will be lost between deployments.")
+                print("⚠️  For production, use Vercel Postgres or another managed database service.")
+            
+            # Check if tables exist by trying to query
+            try:
+                User.query.limit(1).all()
+                _db_initialized = True
+                return
+            except Exception:
+                pass
+            
+            # Create tables if they don't exist
+            create_tables()
+            _db_initialized = True
+    except Exception as e:
+        print(f"Database initialization error: {e}")
+        import traceback
+        traceback.print_exc()
+        # Don't set _db_initialized to True on error, allow retry
+
+# Initialize database on first request (Flask 2.3+ compatible)
+@app.before_request
+def initialize_database():
+    """Initialize database before first request (lazy initialization)."""
+    if not _db_initialized:
+        init_db()
+
+# For local development
 if __name__ == '__main__':
     init_db()
     app.run(debug=True, host='0.0.0.0', port=5000)
 else:
-    # Initialize database when running on Vercel
-    try:
-        init_db()
-    except Exception as e:
-        print(f"Database initialization error: {e}")
-        # Continue anyway, database might already exist
+    # For Vercel/serverless: Database will be initialized on first request via @app.before_request
+    pass
