@@ -3231,6 +3231,18 @@ def initialize_database():
     if not _db_initialized:
         init_db()
 
+# Ensure static files are served with proper headers (for Vercel compatibility)
+@app.route('/static/<path:filename>')
+def serve_static(filename):
+    """Serve static files with proper cache headers."""
+    from flask import send_from_directory
+    response = send_from_directory(app.static_folder, filename)
+    # Add cache headers for static assets
+    if filename.endswith(('.css', '.js', '.png', '.jpg', '.jpeg', '.gif', '.svg', '.ico', '.woff', '.woff2', '.ttf', '.eot')):
+        response.cache_control.max_age = 31536000  # 1 year
+        response.cache_control.public = True
+    return response
+
 # For local development
 if __name__ == '__main__':
     init_db()
