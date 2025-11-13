@@ -3304,7 +3304,13 @@ def init_db():
 def initialize_database():
     """Initialize database before first request (lazy initialization)."""
     if not _db_initialized:
-        init_db()
+        try:
+            init_db()
+        except Exception as e:
+            print(f"⚠️  Database initialization failed in before_request: {e}")
+            import traceback
+            traceback.print_exc()
+            # Don't block requests, but log the error - login route will handle retry
 
 # Ensure static files are served with proper headers (for Vercel compatibility)
 @app.route('/static/<path:filename>')
