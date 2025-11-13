@@ -10,6 +10,7 @@ blinker
 reportlab
 openpyxl
 Pillow
-easyocr
 rapidfuzz
 psycopg2-binary
+# easyocr - Optional, causes OOM on Vercel builds. Install separately if needed.
+# The app works without it - OCR features will be disabled gracefully.

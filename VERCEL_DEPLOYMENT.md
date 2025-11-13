@@ -35,10 +35,14 @@ This application has been configured for deployment on Vercel's serverless platf
 
 ### ⚠️ EasyOCR Considerations
 
-- EasyOCR requires downloading large models (~500MB+)
-- First OCR operation may take several minutes
-- May exceed Vercel's function size limits
-- Consider using a dedicated OCR service API for production
+- **EasyOCR is NOT included in Vercel builds** to prevent Out of Memory (OOM) errors
+- EasyOCR requires downloading large models (~500MB+) which causes build failures
+- The application works **perfectly without EasyOCR** - OCR features are gracefully disabled
+- OCR functionality will show a message that EasyOCR is not available
+- For production OCR, consider using:
+  - External OCR API services (Google Vision API, AWS Textract, etc.)
+  - Separate microservice for OCR processing
+  - Client-side OCR libraries
 
 ## Deployment Steps
 

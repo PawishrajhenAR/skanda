@@ -1,0 +1,8 @@
+# Optional dependencies for local development
+# These are not included in Vercel builds due to memory constraints
+
+# EasyOCR - Heavy dependency (~500MB+ models)
+# Install only if you need OCR functionality locally
+# Note: Not recommended for Vercel deployment due to build memory limits
+easyocr
+
