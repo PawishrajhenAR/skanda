@@ -1,0 +1,218 @@
+{% extends "base.html" %}
+
+{% block title %}Credit Management Dashboard - Skanda Enterprises{% endblock %}
+
+{% block extra_css %}
+<script src="https://cdn.jsdelivr.net/npm/chart.js@3.9.1/dist/chart.min.js"></script>
+<style>
+    .stat-card {
+        border-radius: 10px;
+        padding: 1.5rem;
+        margin-bottom: 1.5rem;
+        box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+        transition: transform 0.2s;
+    }
+    .stat-card:hover {
+        transform: translateY(-2px);
+        box-shadow: 0 4px 8px rgba(0,0,0,0.15);
+    }
+    .stat-card.total { background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); color: white; }
+    .stat-card.pending { background: linear-gradient(135deg, #f093fb 0%, #f5576c 100%); color: white; }
+    .stat-card.cleared { background: linear-gradient(135deg, #4facfe 0%, #00f2fe 100%); color: white; }
+    .stat-card.overdue { background: linear-gradient(135deg, #fa709a 0%, #fee140 100%); color: white; }
+    .stat-value {
+        font-size: 2.5rem;
+        font-weight: 700;
+        margin: 0.5rem 0;
+    }
+    .alert-item {
+        padding: 0.75rem;
+        border-left: 4px solid;
+        margin-bottom: 0.5rem;
+        border-radius: 4px;
+    }
+    .alert-item.warning { border-color: #ffc107; background: #fff3cd; }
+    .alert-item.danger { border-color: #dc3545; background: #f8d7da; }
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="row mb-4">
+    <div class="col-12">
+        <div class="d-flex justify-content-between align-items-center">
+            <h1><i class="fas fa-credit-card me-2"></i>Credit Management Dashboard</h1>
+            <a href="{{ url_for('credits_list') }}" class="btn btn-primary">
+                <i class="fas fa-list me-1"></i>View All Credits
+            </a>
+        </div>
+    </div>
+</div>
+
+<!-- Summary Cards -->
+<div class="row">
+    <div class="col-md-3">
+        <div class="stat-card total">
+            <div class="d-flex justify-content-between align-items-center">
+                <div>
+                    <h6 class="mb-0 opacity-75">Total Credit Given</h6>
+                    <div class="stat-value">₹{{ "{:,.2f}".format(total_credits) }}</div>
+                </div>
+                <i class="fas fa-wallet fa-2x opacity-50"></i>
+            </div>
+        </div>
+    </div>
+    <div class="col-md-3">
+        <div class="stat-card pending">
+            <div class="d-flex justify-content-between align-items-center">
+                <div>
+                    <h6 class="mb-0 opacity-75">Pending Credits</h6>
+                    <div class="stat-value">₹{{ "{:,.2f}".format(pending_credits) }}</div>
+                </div>
+                <i class="fas fa-clock fa-2x opacity-50"></i>
+            </div>
+        </div>
+    </div>
+    <div class="col-md-3">
+        <div class="stat-card cleared">
+            <div class="d-flex justify-content-between align-items-center">
+                <div>
+                    <h6 class="mb-0 opacity-75">Cleared Credits</h6>
+                    <div class="stat-value">₹{{ "{:,.2f}".format(cleared_credits) }}</div>
+                </div>
+                <i class="fas fa-check-circle fa-2x opacity-50"></i>
+            </div>
+        </div>
+    </div>
+    <div class="col-md-3">
+        <div class="stat-card overdue">
+            <div class="d-flex justify-content-between align-items-center">
+                <div>
+                    <h6 class="mb-0 opacity-75">Overdue Credits</h6>
+                    <div class="stat-value">₹{{ "{:,.2f}".format(overdue_credits) }}</div>
+                </div>
+                <i class="fas fa-exclamation-triangle fa-2x opacity-50"></i>
+            </div>
+        </div>
+    </div>
+</div>
+
+<div class="row mt-4">
+    <!-- Vendor Breakdown Chart -->
+    <div class="col-md-8">
+        <div class="card">
+            <div class="card-header">
+                <h5 class="mb-0"><i class="fas fa-chart-bar me-2"></i>Vendor-wise Credit Breakdown</h5>
+            </div>
+            <div class="card-body">
+                <canvas id="vendorChart" height="100"></canvas>
+            </div>
+        </div>
+    </div>
+    
+    <!-- Alerts -->
+    <div class="col-md-4">
+        <div class="card">
+            <div class="card-header">
+                <h5 class="mb-0"><i class="fas fa-bell me-2"></i>Upcoming Due Alerts</h5>
+            </div>
+            <div class="card-body">
+                {% if upcoming_due %}
+                    {% for credit in upcoming_due %}
+                        <div class="alert-item warning">
+                            <strong>{{ credit.vendor.name if credit.vendor else 'N/A' }}</strong><br>
+                            <small>Due: {{ credit.due_date.strftime('%Y-%m-%d') }}</small><br>
+                            <small>Amount: ₹{{ "{:,.2f}".format(credit.credit_amount) }}</small>
+                        </div>
+                    {% endfor %}
+                {% else %}
+                    <p class="text-muted">No upcoming due credits</p>
+                {% endif %}
+            </div>
+        </div>
+        
+        <div class="card mt-3">
+            <div class="card-header bg-danger text-white">
+                <h5 class="mb-0"><i class="fas fa-exclamation-circle me-2"></i>Overdue Credits</h5>
+            </div>
+            <div class="card-body">
+                {% if overdue_list %}
+                    {% for credit in overdue_list %}
+                        <div class="alert-item danger">
+                            <strong>{{ credit.vendor.name if credit.vendor else 'N/A' }}</strong><br>
+                            <small>Due: {{ credit.due_date.strftime('%Y-%m-%d') }}</small><br>
+                            <small>Amount: ₹{{ "{:,.2f}".format(credit.credit_amount) }}</small>
+                            <br><a href="{{ url_for('view_credit', credit_id=credit.id) }}" class="btn btn-sm btn-outline-danger mt-1">View</a>
+                        </div>
+                    {% endfor %}
+                {% else %}
+                    <p class="text-muted">No overdue credits</p>
+                {% endif %}
+            </div>
+        </div>
+    </div>
+</div>
+
+{% endblock %}
+
+{% block extra_js %}
+<script>
+    // Vendor Breakdown Chart
+    const vendorData = {
+        labels: [{% for v in vendor_breakdown %}'{{ v[0] }}'{% if not loop.last %},{% endif %}{% endfor %}],
+        datasets: [{
+            label: 'Credit Amount',
+            data: [{% for v in vendor_breakdown %}{{ v[1] }}{% if not loop.last %},{% endif %}{% endfor %}],
+            backgroundColor: [
+                'rgba(54, 162, 235, 0.8)',
+                'rgba(255, 99, 132, 0.8)',
+                'rgba(255, 206, 86, 0.8)',
+                'rgba(75, 192, 192, 0.8)',
+                'rgba(153, 102, 255, 0.8)',
+                'rgba(255, 159, 64, 0.8)'
+            ],
+            borderColor: [
+                'rgba(54, 162, 235, 1)',
+                'rgba(255, 99, 132, 1)',
+                'rgba(255, 206, 86, 1)',
+                'rgba(75, 192, 192, 1)',
+                'rgba(153, 102, 255, 1)',
+                'rgba(255, 159, 64, 1)'
+            ],
+            borderWidth: 1
+        }]
+    };
+    
+    const ctx = document.getElementById('vendorChart').getContext('2d');
+    new Chart(ctx, {
+        type: 'bar',
+        data: vendorData,
+        options: {
+            responsive: true,
+            maintainAspectRatio: false,
+            scales: {
+                y: {
+                    beginAtZero: true,
+                    ticks: {
+                        callback: function(value) {
+                            return '₹' + value.toLocaleString('en-IN', {maximumFractionDigits: 0});
+                        }
+                    }
+                }
+            },
+            plugins: {
+                legend: {
+                    display: false
+                },
+                tooltip: {
+                    callbacks: {
+                        label: function(context) {
+                            return '₹' + context.parsed.y.toLocaleString('en-IN', {maximumFractionDigits: 2});
+                        }
+                    }
+                }
+            }
+        }
+    });
+</script>
+{% endblock %}
+

@@ -1,0 +1,193 @@
+{% extends "base.html" %}
+
+{% block title %}Database Structure - Skanda Enterprises{% endblock %}
+
+{% block content %}
+<div class="row mb-4">
+    <div class="col-12">
+        <div class="d-flex justify-content-between align-items-center">
+            <h1><i class="fas fa-database me-2"></i>Database Structure</h1>
+            <div>
+                <a href="{{ url_for('admin_dashboard') }}" class="btn btn-secondary">
+                    <i class="fas fa-arrow-left me-1"></i>Back to Dashboard
+                </a>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Database Info -->
+<div class="row mb-4">
+    <div class="col-12">
+        <div class="card">
+            <div class="card-header bg-primary text-white">
+                <h5 class="mb-0"><i class="fas fa-info-circle me-2"></i>Database Information</h5>
+            </div>
+            <div class="card-body">
+                <div class="row">
+                    <div class="col-md-6">
+                        <p><strong>Database Type:</strong> {{ db_info.type }}</p>
+                        <p><strong>Total Tables:</strong> <span class="badge bg-success">{{ tables|length }}</span></p>
+                    </div>
+                    <div class="col-md-6">
+                        {% if db_info.path %}
+                        <p><strong>Database Path:</strong> <code>{{ db_info.path }}</code></p>
+                        {% endif %}
+                        {% if db_info.size %}
+                        <p><strong>Database Size:</strong> {{ db_info.size }}</p>
+                        {% endif %}
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Tables List -->
+<div class="row">
+    {% for table_name, table_info in tables.items() %}
+    <div class="col-12 mb-4">
+        <div class="card">
+            <div class="card-header d-flex justify-content-between align-items-center">
+                <h5 class="mb-0">
+                    <i class="fas fa-table me-2"></i>{{ table_name }}
+                    {% if table_info.row_count is not none %}
+                    <span class="badge bg-info ms-2">{{ table_info.row_count }} rows</span>
+                    {% endif %}
+                </h5>
+                <div>
+                    <span class="badge bg-secondary">{{ table_info.columns|length }} columns</span>
+                </div>
+            </div>
+            <div class="card-body">
+                <!-- Columns -->
+                <h6 class="mb-3"><i class="fas fa-columns me-2"></i>Columns</h6>
+                <div class="table-responsive">
+                    <table class="table table-sm table-bordered table-striped">
+                        <thead class="table-dark">
+                            <tr>
+                                <th width="20%">Column Name</th>
+                                <th width="15%">Type</th>
+                                <th width="10%">Nullable</th>
+                                <th width="10%">Primary Key</th>
+                                <th width="10%">Foreign Key</th>
+                                <th width="35%">Default</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            {% for col in table_info.columns %}
+                            <tr>
+                                <td>
+                                    <strong>{{ col.name }}</strong>
+                                    {% if col.autoincrement %}
+                                    <span class="badge bg-info" title="Auto Increment">AI</span>
+                                    {% endif %}
+                                </td>
+                                <td><code>{{ col.type }}</code></td>
+                                <td>
+                                    {% if col.nullable %}
+                                    <span class="badge bg-warning">Yes</span>
+                                    {% else %}
+                                    <span class="badge bg-danger">No</span>
+                                    {% endif %}
+                                </td>
+                                <td>
+                                    {% if col.primary_key %}
+                                    <span class="badge bg-success"><i class="fas fa-key"></i> PK</span>
+                                    {% else %}
+                                    <span class="text-muted">-</span>
+                                    {% endif %}
+                                </td>
+                                <td>
+                                    {% if col.foreign_key %}
+                                    <span class="badge bg-primary" title="{{ col.foreign_key }}">
+                                        <i class="fas fa-link"></i> FK
+                                    </span>
+                                    {% else %}
+                                    <span class="text-muted">-</span>
+                                    {% endif %}
+                                </td>
+                                <td>
+                                    {% if col.default %}
+                                    <code>{{ col.default }}</code>
+                                    {% else %}
+                                    <span class="text-muted">-</span>
+                                    {% endif %}
+                                </td>
+                            </tr>
+                            {% endfor %}
+                        </tbody>
+                    </table>
+                </div>
+
+                <!-- Foreign Keys Details -->
+                {% if table_info.foreign_keys %}
+                <h6 class="mb-3 mt-4"><i class="fas fa-link me-2"></i>Foreign Key Relationships</h6>
+                <div class="table-responsive">
+                    <table class="table table-sm table-bordered">
+                        <thead class="table-secondary">
+                            <tr>
+                                <th>Column</th>
+                                <th>References Table</th>
+                                <th>References Column</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            {% for fk in table_info.foreign_keys %}
+                            <tr>
+                                <td><code>{{ fk.column }}</code></td>
+                                <td><strong>{{ fk.ref_table }}</strong></td>
+                                <td><code>{{ fk.ref_column }}</code></td>
+                            </tr>
+                            {% endfor %}
+                        </tbody>
+                    </table>
+                </div>
+                {% endif %}
+
+                <!-- Indexes -->
+                {% if table_info.indexes %}
+                <h6 class="mb-3 mt-4"><i class="fas fa-list-ul me-2"></i>Indexes</h6>
+                <div class="table-responsive">
+                    <table class="table table-sm table-bordered">
+                        <thead class="table-secondary">
+                            <tr>
+                                <th>Index Name</th>
+                                <th>Columns</th>
+                                <th>Unique</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            {% for idx in table_info.indexes %}
+                            <tr>
+                                <td><code>{{ idx.name }}</code></td>
+                                <td>{{ idx.columns|join(', ') }}</td>
+                                <td>
+                                    {% if idx.unique %}
+                                    <span class="badge bg-success">Yes</span>
+                                    {% else %}
+                                    <span class="badge bg-secondary">No</span>
+                                    {% endif %}
+                                </td>
+                            </tr>
+                            {% endfor %}
+                        </tbody>
+                    </table>
+                </div>
+                {% endif %}
+            </div>
+        </div>
+    </div>
+    {% endfor %}
+</div>
+
+<style>
+    code {
+        background-color: #f8f9fa;
+        padding: 2px 6px;
+        border-radius: 3px;
+        font-size: 0.9em;
+    }
+</style>
+{% endblock %}
+

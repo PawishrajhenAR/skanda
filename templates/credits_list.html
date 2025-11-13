@@ -1,0 +1,178 @@
+{% extends "base.html" %}
+
+{% block title %}Credit Transactions - Skanda Enterprises{% endblock %}
+
+{% block content %}
+<div class="row mb-4">
+    <div class="col-12">
+        <div class="d-flex justify-content-between align-items-center">
+            <h1><i class="fas fa-list me-2"></i>Credit Transactions</h1>
+            <a href="{{ url_for('credits_dashboard') }}" class="btn btn-primary">
+                <i class="fas fa-chart-line me-1"></i>Dashboard
+            </a>
+        </div>
+    </div>
+</div>
+
+<!-- Filters -->
+<div class="card mb-4">
+    <div class="card-header">
+        <h5 class="mb-0"><i class="fas fa-filter me-2"></i>Filters</h5>
+    </div>
+    <div class="card-body">
+        <form method="GET" action="{{ url_for('credits_list') }}" class="row g-3">
+            <div class="col-md-3">
+                <label class="form-label">Vendor</label>
+                <select name="vendor" class="form-select">
+                    <option value="">All Vendors</option>
+                    {% for vendor in vendors %}
+                        <option value="{{ vendor.id }}" {% if current_filters.vendor == vendor.id %}selected{% endif %}>
+                            {{ vendor.name }}
+                        </option>
+                    {% endfor %}
+                </select>
+            </div>
+            <div class="col-md-3">
+                <label class="form-label">Salesman</label>
+                <select name="salesman" class="form-select">
+                    <option value="">All Salesmen</option>
+                    {% for salesman in salesmen %}
+                        <option value="{{ salesman.id }}" {% if current_filters.salesman == salesman.id %}selected{% endif %}>
+                            {{ salesman.name }}
+                        </option>
+                    {% endfor %}
+                </select>
+            </div>
+            <div class="col-md-2">
+                <label class="form-label">Status</label>
+                <select name="status" class="form-select">
+                    <option value="all">All Status</option>
+                    <option value="Pending" {% if current_filters.status == 'Pending' %}selected{% endif %}>Pending</option>
+                    <option value="Cleared" {% if current_filters.status == 'Cleared' %}selected{% endif %}>Cleared</option>
+                    <option value="Overdue" {% if current_filters.status == 'Overdue' %}selected{% endif %}>Overdue</option>
+                </select>
+            </div>
+            <div class="col-md-2">
+                <label class="form-label">Payment Method</label>
+                <select name="payment_method" class="form-select">
+                    <option value="">All Methods</option>
+                    <option value="Cash" {% if current_filters.payment_method == 'Cash' %}selected{% endif %}>Cash</option>
+                    <option value="UPI" {% if current_filters.payment_method == 'UPI' %}selected{% endif %}>UPI</option>
+                    <option value="Bank Transfer" {% if current_filters.payment_method == 'Bank Transfer' %}selected{% endif %}>Bank Transfer</option>
+                </select>
+            </div>
+            <div class="col-md-2">
+                <label class="form-label">Start Date</label>
+                <input type="date" name="start" class="form-control" value="{{ current_filters.start }}">
+            </div>
+            <div class="col-md-2">
+                <label class="form-label">End Date</label>
+                <input type="date" name="end" class="form-control" value="{{ current_filters.end }}">
+            </div>
+            <div class="col-md-3">
+                <label class="form-label">Vendor Name (Search)</label>
+                <input type="text" name="vendor_name" class="form-control" placeholder="Search vendor..." value="{{ current_filters.vendor_name or '' }}">
+            </div>
+            <div class="col-md-3">
+                <label class="form-label">Salesman Name (Search)</label>
+                <input type="text" name="salesman_name" class="form-control" placeholder="Search salesman..." value="{{ current_filters.salesman_name or '' }}">
+            </div>
+            <div class="col-md-2">
+                <label class="form-label">Min Amount</label>
+                <input type="number" step="0.01" name="min_amount" class="form-control" placeholder="0.00" value="{{ current_filters.min_amount or '' }}">
+            </div>
+            <div class="col-md-2">
+                <label class="form-label">Max Amount</label>
+                <input type="number" step="0.01" name="max_amount" class="form-control" placeholder="0.00" value="{{ current_filters.max_amount or '' }}">
+            </div>
+            <div class="col-md-2 d-flex align-items-end">
+                <button type="submit" class="btn btn-primary w-100">
+                    <i class="fas fa-search me-1"></i>Filter
+                </button>
+            </div>
+            <div class="col-md-2 d-flex align-items-end">
+                <a href="{{ url_for('credits_list') }}" class="btn btn-secondary w-100">
+                    <i class="fas fa-times me-1"></i>Clear
+                </a>
+            </div>
+        </form>
+    </div>
+</div>
+
+<!-- Credits Table -->
+<div class="card">
+    <div class="card-header">
+        <h5 class="mb-0"><i class="fas fa-table me-2"></i>Credit Transactions</h5>
+    </div>
+    <div class="card-body">
+        {% if credits %}
+            <div class="table-responsive">
+                <table class="table table-hover">
+                    <thead>
+                        <tr>
+                            <th>ID</th>
+                            <th>Bill Number</th>
+                            <th>Vendor</th>
+                            <th>Salesman</th>
+                            <th>Credit Amount</th>
+                            <th>Due Date</th>
+                            <th>Status</th>
+                            <th>Payment Method</th>
+                            <th>Created At</th>
+                            <th>Actions</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for credit in credits %}
+                            <tr>
+                                <td>{{ credit.id }}</td>
+                                <td>
+                                    {% if credit.bill_number %}
+                                        <a href="{{ url_for('view_bill', bill_id=credit.bill_id) if credit.bill_id else '#' }}">
+                                            {{ credit.bill_number }}
+                                        </a>
+                                    {% else %}
+                                        N/A
+                                    {% endif %}
+                                </td>
+                                <td>{{ credit.vendor.name if credit.vendor else 'N/A' }}</td>
+                                <td>{{ credit.salesman.name if credit.salesman else 'N/A' }}</td>
+                                <td><strong>₹{{ "{:,.2f}".format(credit.credit_amount) }}</strong></td>
+                                <td>
+                                    {{ credit.due_date.strftime('%Y-%m-%d') }}
+                                    {% if credit.due_date < today and credit.status != 'Cleared' %}
+                                        <span class="badge bg-danger">Overdue</span>
+                                    {% elif (credit.due_date - today).days <= 3 and credit.status != 'Cleared' %}
+                                        <span class="badge bg-warning">Due Soon</span>
+                                    {% endif %}
+                                </td>
+                                <td>
+                                    {% if credit.status == 'Pending' %}
+                                        <span class="badge bg-warning">Pending</span>
+                                    {% elif credit.status == 'Cleared' %}
+                                        <span class="badge bg-success">Cleared</span>
+                                    {% elif credit.status == 'Overdue' %}
+                                        <span class="badge bg-danger">Overdue</span>
+                                    {% endif %}
+                                </td>
+                                <td>{{ credit.payment_method }}</td>
+                                <td>{{ credit.created_at.strftime('%Y-%m-%d %H:%M') }}</td>
+                                <td>
+                                    <a href="{{ url_for('view_credit', credit_id=credit.id) }}" class="btn btn-sm btn-primary">
+                                        <i class="fas fa-eye"></i>
+                                    </a>
+                                </td>
+                            </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+        {% else %}
+            <div class="alert alert-info">
+                <i class="fas fa-info-circle me-2"></i>No credit transactions found.
+            </div>
+        {% endif %}
+    </div>
+</div>
+{% endblock %}
+

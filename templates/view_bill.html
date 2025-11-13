@@ -1,0 +1,294 @@
+{% extends "base.html" %}
+
+{% block title %}Bill {{ bill.bill_number }} - Skanda Enterprises{% endblock %}
+
+{% block content %}
+<div class="row mb-4">
+    <div class="col-12">
+        <div class="d-flex justify-content-between align-items-center">
+            <h1><i class="fas fa-file-invoice me-2"></i>Bill {{ bill.bill_number }}</h1>
+            <div>
+                {% if session.role in ['admin', 'computer_organiser'] and bill.verification_status != 'verified' %}
+                <a href="{{ url_for('verify_bill_by_id', bill_id=bill.id) }}" class="btn btn-warning me-2">
+                    <i class="fas fa-check-circle me-1"></i>Verify
+                </a>
+                {% endif %}
+                <a href="{{ url_for('bills') }}" class="btn btn-secondary">
+                    <i class="fas fa-arrow-left me-1"></i>Back to Bills
+                </a>
+            </div>
+        </div>
+    </div>
+</div>
+
+<div class="row">
+    <!-- Bill Details -->
+    <div class="col-md-8">
+        <div class="card mb-4">
+            <div class="card-header">
+                <h5 class="mb-0"><i class="fas fa-info-circle me-2"></i>Bill Information</h5>
+            </div>
+            <div class="card-body">
+                <table class="table table-bordered">
+                    <tr>
+                        <th width="30%">Bill Number</th>
+                        <td><strong>{{ bill.bill_number }}</strong></td>
+                    </tr>
+                    <tr>
+                        <th>Bill Type</th>
+                        <td>
+                            {% if bill.bill_type == 'handbill' %}
+                                <span class="badge bg-info"><i class="fas fa-file-alt me-1"></i>Handbill (Manual)</span>
+                            {% else %}
+                                <span class="badge bg-primary"><i class="fas fa-file-image me-1"></i>Normal Bill (OCR)</span>
+                            {% endif %}
+                        </td>
+                    </tr>
+                    <tr>
+                        <th>Amount</th>
+                        <td><strong class="text-success">₹{{ "%.2f"|format(bill.amount) }}</strong></td>
+                    </tr>
+                    <tr>
+                        <th>Bill Date</th>
+                        <td>{{ bill.bill_date.strftime('%d-%m-%Y') }}</td>
+                    </tr>
+                    <tr>
+                        <th>Payment Method</th>
+                        <td>
+                            {% if bill.payment_method == 'Credit' %}
+                                <span class="badge bg-warning"><i class="fas fa-credit-card me-1"></i>Credit</span>
+                            {% elif bill.payment_method == 'Cash' %}
+                                <span class="badge bg-success"><i class="fas fa-money-bill me-1"></i>Cash</span>
+                            {% elif bill.payment_method == 'UPI' %}
+                                <span class="badge bg-info"><i class="fas fa-mobile-alt me-1"></i>UPI</span>
+                            {% elif bill.payment_method == 'Bank' %}
+                                <span class="badge bg-primary"><i class="fas fa-university me-1"></i>Bank Transfer</span>
+                            {% else %}
+                                <span class="badge bg-secondary">{{ bill.payment_method }}</span>
+                            {% endif %}
+                        </td>
+                    </tr>
+                    <tr>
+                        <th>Vendor</th>
+                        <td>
+                            {% if bill.vendor %}
+                                {{ bill.vendor.name }}
+                            {% else %}
+                                <span class="text-muted">N/A</span>
+                            {% endif %}
+                        </td>
+                    </tr>
+                    <tr>
+                        <th>Customer</th>
+                        <td>
+                            {% if bill.customer %}
+                                {{ bill.customer.name }}
+                            {% else %}
+                                <span class="text-muted">N/A</span>
+                            {% endif %}
+                        </td>
+                    </tr>
+                    <tr>
+                        <th>Salesman</th>
+                        <td>
+                            {% if bill.salesman_rel %}
+                                {{ bill.salesman_rel.name }}
+                            {% else %}
+                                <span class="text-muted">N/A</span>
+                            {% endif %}
+                        </td>
+                    </tr>
+                    <tr>
+                        <th>Verification Status</th>
+                        <td>
+                            {% if bill.verification_status == 'verified' %}
+                                <span class="badge bg-success"><i class="fas fa-check-circle me-1"></i>Verified</span>
+                            {% elif bill.verification_status == 'discrepancy_found' %}
+                                <span class="badge bg-danger"><i class="fas fa-exclamation-triangle me-1"></i>Discrepancy Found</span>
+                            {% else %}
+                                <span class="badge bg-warning"><i class="fas fa-clock me-1"></i>Unverified</span>
+                            {% endif %}
+                        </td>
+                    </tr>
+                    {% if verified_user %}
+                    <tr>
+                        <th>Verified By</th>
+                        <td>{{ verified_user.username }}</td>
+                    </tr>
+                    {% endif %}
+                    {% if bill.verified_at %}
+                    <tr>
+                        <th>Verified At</th>
+                        <td>{{ bill.verified_at.strftime('%d-%m-%Y %H:%M') }}</td>
+                    </tr>
+                    {% endif %}
+                </table>
+            </div>
+        </div>
+
+        <!-- OCR Information (for OCR bills) -->
+        {% if bill.bill_type == 'normal' %}
+        <div class="card mb-4">
+            <div class="card-header">
+                <h5 class="mb-0"><i class="fas fa-eye me-2"></i>OCR Information</h5>
+            </div>
+            <div class="card-body">
+                {% if bill.ocr_confidence %}
+                <div class="mb-3">
+                    <strong>OCR Confidence:</strong> 
+                    <span class="badge {% if bill.ocr_confidence >= 80 %}bg-success{% elif bill.ocr_confidence >= 50 %}bg-warning{% else %}bg-danger{% endif %}">
+                        {{ "%.1f"|format(bill.ocr_confidence) }}%
+                    </span>
+                </div>
+                {% endif %}
+                
+                {% if bill.extracted_text %}
+                <div class="mb-3">
+                    <strong>Extracted Text:</strong>
+                    <div class="border rounded p-3 bg-light" style="max-height: 300px; overflow-y: auto; font-family: monospace; font-size: 0.9em;">
+                        {{ bill.extracted_text[:500] }}{% if bill.extracted_text|length > 500 %}...{% endif %}
+                    </div>
+                </div>
+                {% endif %}
+
+                {% if bill.ocr_bill_number or bill.ocr_amount or bill.ocr_date or bill.ocr_vendor_name %}
+                <div class="mb-3">
+                    <strong>Parsed OCR Data:</strong>
+                    <table class="table table-sm table-borderless">
+                        {% if bill.ocr_bill_number %}
+                        <tr>
+                            <td width="30%">OCR Bill Number:</td>
+                            <td>{{ bill.ocr_bill_number }}</td>
+                        </tr>
+                        {% endif %}
+                        {% if bill.ocr_amount %}
+                        <tr>
+                            <td>OCR Amount:</td>
+                            <td>₹{{ "%.2f"|format(bill.ocr_amount) }}</td>
+                        </tr>
+                        {% endif %}
+                        {% if bill.ocr_date %}
+                        <tr>
+                            <td>OCR Date:</td>
+                            <td>{{ bill.ocr_date.strftime('%d-%m-%Y') }}</td>
+                        </tr>
+                        {% endif %}
+                        {% if bill.ocr_vendor_name %}
+                        <tr>
+                            <td>OCR Vendor:</td>
+                            <td>{{ bill.ocr_vendor_name }}</td>
+                        </tr>
+                        {% endif %}
+                    </table>
+                </div>
+                {% endif %}
+
+                {% if bill.image_filename %}
+                <div>
+                    <strong>Bill Image:</strong>
+                    <br>
+                    <img src="{{ url_for('static', filename='uploads/' + bill.image_filename) }}" 
+                         alt="Bill Image" 
+                         class="img-fluid mt-2 rounded border" 
+                         style="max-height: 400px;">
+                </div>
+                {% endif %}
+            </div>
+        </div>
+        {% endif %}
+
+        <!-- Credit Transaction (if payment is Credit) -->
+        {% if bill.payment_method == 'Credit' %}
+        <div class="card mb-4">
+            <div class="card-header">
+                <h5 class="mb-0"><i class="fas fa-credit-card me-2"></i>Credit Transaction</h5>
+            </div>
+            <div class="card-body">
+                {% set credit = bill.credit_transactions[0] if bill.credit_transactions else None %}
+                {% if credit %}
+                <div class="alert alert-info">
+                    <strong>Credit Transaction Found:</strong>
+                    <ul class="mb-0 mt-2">
+                        <li><strong>Status:</strong> 
+                            {% if credit.status == 'Pending' %}
+                                <span class="badge bg-warning">Pending</span>
+                            {% elif credit.status == 'Cleared' %}
+                                <span class="badge bg-success">Cleared</span>
+                            {% elif credit.status == 'Overdue' %}
+                                <span class="badge bg-danger">Overdue</span>
+                            {% else %}
+                                <span class="badge bg-secondary">{{ credit.status }}</span>
+                            {% endif %}
+                        </li>
+                        <li><strong>Amount:</strong> ₹{{ "%.2f"|format(credit.credit_amount) }}</li>
+                        <li><strong>Due Date:</strong> {{ credit.due_date.strftime('%d-%m-%Y') }}</li>
+                    </ul>
+                    <div class="mt-3">
+                        <a href="{{ url_for('view_credit', credit_id=credit.id) }}" class="btn btn-sm btn-primary">
+                            <i class="fas fa-eye me-1"></i>View Credit Details
+                        </a>
+                    </div>
+                </div>
+                {% else %}
+                <div class="alert alert-warning">
+                    <i class="fas fa-exclamation-triangle me-2"></i>
+                    No credit transaction found for this bill. This may be an issue if payment method is Credit.
+                </div>
+                {% endif %}
+            </div>
+        </div>
+        {% endif %}
+    </div>
+
+    <!-- Actions Sidebar -->
+    <div class="col-md-4">
+        <div class="card">
+            <div class="card-header">
+                <h5 class="mb-0"><i class="fas fa-cog me-2"></i>Actions</h5>
+            </div>
+            <div class="card-body">
+                <div class="d-grid gap-2">
+                    {% if bill.payment_method == 'Credit' %}
+                    {% set credit = bill.credit_transactions[0] if bill.credit_transactions else None %}
+                    {% if credit %}
+                    <a href="{{ url_for('view_credit', credit_id=credit.id) }}" class="btn btn-primary">
+                        <i class="fas fa-credit-card me-1"></i>View Credit
+                    </a>
+                    {% endif %}
+                    {% endif %}
+                    
+                    {% if session.role == 'admin' %}
+                    <a href="{{ url_for('bills') }}" class="btn btn-outline-secondary">
+                        <i class="fas fa-list me-1"></i>All Bills
+                    </a>
+                    {% endif %}
+                    
+                    {% if session.role in ['admin', 'computer_organiser'] %}
+                    {% if bill.bill_type == 'normal' and bill.verification_status != 'verified' %}
+                    <a href="{{ url_for('verify_bill_by_id', bill_id=bill.id) }}" class="btn btn-warning">
+                        <i class="fas fa-check-circle me-1"></i>Verify OCR Bill
+                    </a>
+                    {% endif %}
+                    {% endif %}
+                </div>
+            </div>
+        </div>
+
+        <!-- Status Summary -->
+        <div class="card mt-3">
+            <div class="card-header">
+                <h5 class="mb-0"><i class="fas fa-chart-pie me-2"></i>Summary</h5>
+            </div>
+            <div class="card-body">
+                <small class="text-muted">
+                    <strong>Created:</strong> {{ bill.created_at.strftime('%d-%m-%Y %H:%M') if bill.created_at else 'N/A' }}<br>
+                    <strong>Bill ID:</strong> #{{ bill.id }}<br>
+                    <strong>Type:</strong> {{ bill.bill_type|title }}<br>
+                    <strong>Status:</strong> {{ bill.status|title }}
+                </small>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+

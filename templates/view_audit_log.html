@@ -1,0 +1,149 @@
+{% extends "base.html" %}
+
+{% block title %}Audit Log #{{ log.id }} - Skanda Enterprises{% endblock %}
+
+{% block content %}
+<div class="row mb-4">
+    <div class="col-12">
+        <div class="d-flex justify-content-between align-items-center">
+            <h1><i class="fas fa-file-alt me-2"></i>Audit Log #{{ log.id }}</h1>
+            <div>
+                <a href="{{ url_for('audit_logs') }}" class="btn btn-secondary">
+                    <i class="fas fa-arrow-left me-1"></i>Back to Logs
+                </a>
+            </div>
+        </div>
+    </div>
+</div>
+
+<div class="row">
+    <div class="col-md-8">
+        <div class="card">
+            <div class="card-header">
+                <h5 class="mb-0"><i class="fas fa-info-circle me-2"></i>Log Details</h5>
+            </div>
+            <div class="card-body">
+                <table class="table table-bordered">
+                    <tr>
+                        <th width="30%">Log ID</th>
+                        <td>#{{ log.id }}</td>
+                    </tr>
+                    <tr>
+                        <th>Timestamp</th>
+                        <td>{{ log.timestamp.strftime('%Y-%m-%d %H:%M:%S') }}</td>
+                    </tr>
+                    <tr>
+                        <th>User</th>
+                        <td>{{ log.user.username if log.user else 'Unknown' }} (ID: {{ log.user_id }})</td>
+                    </tr>
+                    <tr>
+                        <th>Role</th>
+                        <td><span class="badge bg-secondary">{{ log.role }}</span></td>
+                    </tr>
+                    <tr>
+                        <th>Action Type</th>
+                        <td><span class="badge bg-primary">{{ log.action_type }}</span></td>
+                    </tr>
+                    <tr>
+                        <th>Target Type</th>
+                        <td>{{ log.target_type }}</td>
+                    </tr>
+                    <tr>
+                        <th>Target ID</th>
+                        <td>{{ log.target_id }}</td>
+                    </tr>
+                    <tr>
+                        <th>IP Address</th>
+                        <td>{{ log.ip_address or 'N/A' }}</td>
+                    </tr>
+                    <tr>
+                        <th>User Agent</th>
+                        <td><small class="text-muted">{{ log.user_agent or 'N/A' }}</small></td>
+                    </tr>
+                    <tr>
+                        <th>Status</th>
+                        <td>
+                            {% if log.success %}
+                            <span class="badge bg-success"><i class="fas fa-check"></i> Success</span>
+                            {% else %}
+                            <span class="badge bg-danger"><i class="fas fa-times"></i> Failed</span>
+                            {% endif %}
+                        </td>
+                    </tr>
+                    <tr>
+                        <th>Trace ID</th>
+                        <td><code>{{ log.trace_id }}</code></td>
+                    </tr>
+                </table>
+            </div>
+        </div>
+        
+        {% if meta %}
+        <div class="card mt-4">
+            <div class="card-header">
+                <h5 class="mb-0"><i class="fas fa-code me-2"></i>Metadata</h5>
+            </div>
+            <div class="card-body">
+                <pre class="bg-light p-3 rounded" style="max-height: 400px; overflow-y: auto;">{{ meta|tojson(indent=2) }}</pre>
+                
+                {% if meta.field_changes %}
+                <h6 class="mt-3">Field Changes:</h6>
+                <table class="table table-sm table-bordered">
+                    <thead>
+                        <tr>
+                            <th>Field</th>
+                            <th>Old Value</th>
+                            <th>New Value</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for change in meta.field_changes %}
+                        <tr>
+                            <td><code>{{ change.field }}</code></td>
+                            <td>{{ change.old or '<em>None</em>'|safe }}</td>
+                            <td>{{ change.new or '<em>None</em>'|safe }}</td>
+                        </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+                {% endif %}
+            </div>
+        </div>
+        {% endif %}
+    </div>
+    
+    <div class="col-md-4">
+        <div class="card">
+            <div class="card-header">
+                <h5 class="mb-0"><i class="fas fa-link me-2"></i>Quick Links</h5>
+            </div>
+            <div class="card-body">
+                <div class="d-grid gap-2">
+                    {% if log.target_type == 'Vendor' %}
+                    <a href="{{ url_for('vendors') }}" class="btn btn-outline-primary">
+                        <i class="fas fa-store me-1"></i>View Vendors
+                    </a>
+                    {% elif log.target_type == 'Bill' %}
+                    <a href="{{ url_for('view_bill', bill_id=log.target_id) }}" class="btn btn-outline-primary">
+                        <i class="fas fa-file-alt me-1"></i>View Bill
+                    </a>
+                    {% elif log.target_type == 'Credit' %}
+                    <a href="{{ url_for('view_credit', credit_id=log.target_id) }}" class="btn btn-outline-primary">
+                        <i class="fas fa-credit-card me-1"></i>View Credit
+                    </a>
+                    {% elif log.target_type == 'User' %}
+                    <a href="{{ url_for('users') }}" class="btn btn-outline-primary">
+                        <i class="fas fa-users me-1"></i>View Users
+                    </a>
+                    {% endif %}
+                    
+                    <a href="{{ url_for('entity_history', target_type=log.target_type, target_id=log.target_id) }}" class="btn btn-info">
+                        <i class="fas fa-history me-1"></i>View Entity History
+                    </a>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+

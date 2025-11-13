@@ -1,0 +1,156 @@
+{% extends "base.html" %}
+
+{% block title %}New Delivery Order - Skanda Enterprises{% endblock %}
+
+{% block page_title %}New Delivery Order{% endblock %}
+
+{% block content %}
+<div class="row">
+    <div class="col-12">
+        <div class="d-flex justify-content-between align-items-center mb-4">
+            <h1>
+                <i class="fas fa-plus me-2"></i>New Delivery Order
+            </h1>
+            <a href="{{ url_for('deliveries') }}" class="btn btn-outline-secondary">
+                <i class="fas fa-arrow-left me-1"></i>Back to Deliveries
+            </a>
+        </div>
+    </div>
+</div>
+
+<div class="row">
+    <div class="col-md-8 mx-auto">
+        <div class="card">
+            <div class="card-header">
+                <h5 class="mb-0">
+                    <i class="fas fa-truck me-2"></i>Delivery Order Details
+                </h5>
+            </div>
+            <div class="card-body">
+                <form method="POST">
+                    <div class="row">
+                        <div class="col-md-6 mb-3">
+                            <label for="delivery_man_id" class="form-label">
+                                <i class="fas fa-user me-1"></i>Delivery Man *
+                            </label>
+                            <select class="form-select" id="delivery_man_id" name="delivery_man_id" required>
+                                <option value="">Select Delivery Man</option>
+                                {% for delivery_man in delivery_men %}
+                                <option value="{{ delivery_man.id }}">
+                                    {{ delivery_man.full_name or delivery_man.username }} 
+                                    {% if delivery_man.phone %}({{ delivery_man.phone }}){% endif %}
+                                </option>
+                                {% endfor %}
+                            </select>
+                            <div class="form-text">Select the delivery person assigned to this order</div>
+                        </div>
+                        
+                        <div class="col-md-6 mb-3">
+                            <label for="invoice_id" class="form-label">
+                                <i class="fas fa-file-invoice me-1"></i>Invoice (Optional)
+                            </label>
+                            <select class="form-select" id="invoice_id" name="invoice_id">
+                                <option value="">No Invoice</option>
+                                {% for invoice in invoices %}
+                                <option value="{{ invoice.id }}">
+                                    {{ invoice.invoice_number }} - ₹{{ "%.2f"|format(invoice.bill_amount) }}
+                                </option>
+                                {% endfor %}
+                            </select>
+                            <div class="form-text">Link to an existing invoice if applicable</div>
+                        </div>
+                    </div>
+                    
+                    <div class="row">
+                        <div class="col-md-6 mb-3">
+                            <label for="delivery_date" class="form-label">
+                                <i class="fas fa-calendar me-1"></i>Delivery Date *
+                            </label>
+                            <input type="date" class="form-control" id="delivery_date" name="delivery_date" required>
+                            <div class="form-text">Expected delivery date</div>
+                        </div>
+                        
+                        <div class="col-md-6 mb-3">
+                            <label for="customer_contact" class="form-label">
+                                <i class="fas fa-phone me-1"></i>Customer Contact
+                            </label>
+                            <input type="tel" class="form-control" id="customer_contact" name="customer_contact" 
+                                   placeholder="1234567890" maxlength="20">
+                            <div class="form-text">Customer contact number for delivery (10 digits)</div>
+                        </div>
+                    </div>
+                    
+                    <div class="row">
+                        <div class="col-12 mb-3">
+                            <label for="delivery_address" class="form-label">
+                                <i class="fas fa-map-marker-alt me-1"></i>Delivery Address *
+                            </label>
+                            <textarea class="form-control" id="delivery_address" name="delivery_address" 
+                                      rows="4" placeholder="Enter complete delivery address" required></textarea>
+                            <div class="form-text">Complete address including street, city, state, and PIN code</div>
+                        </div>
+                    </div>
+                    
+                    <div class="alert alert-info">
+                        <i class="fas fa-info-circle me-2"></i>
+                        <strong>Note:</strong> The order number will be automatically generated upon creation.
+                    </div>
+                    
+                    <div class="row">
+                        <div class="col-12">
+                            <button type="submit" class="btn btn-primary">
+                                <i class="fas fa-save me-1"></i>Create Delivery Order
+                            </button>
+                            <a href="{{ url_for('deliveries') }}" class="btn btn-secondary ms-2">
+                                <i class="fas fa-times me-1"></i>Cancel
+                            </a>
+                        </div>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    // Set today as default delivery date
+    const today = new Date().toISOString().split('T')[0];
+    const deliveryDateInput = document.getElementById('delivery_date');
+    if (deliveryDateInput && !deliveryDateInput.value) {
+        deliveryDateInput.value = today;
+    }
+    
+    // Simple phone number input - only digits, max 10 digits
+    const phoneInput = document.getElementById('customer_contact');
+    if (phoneInput) {
+        phoneInput.addEventListener('input', function(e) {
+            // Remove all non-digit characters
+            let value = e.target.value.replace(/\D/g, '');
+            
+            // Limit to 10 digits
+            if (value.length > 10) {
+                value = value.substring(0, 10);
+            }
+            
+            // Update the input value only if it changed
+            if (e.target.value !== value) {
+                e.target.value = value;
+            }
+        });
+        
+        // Prevent paste of invalid characters
+        phoneInput.addEventListener('paste', function(e) {
+            e.preventDefault();
+            let paste = (e.clipboardData || window.clipboardData).getData('text');
+            let digits = paste.replace(/\D/g, '');
+            if (digits.length > 10) {
+                digits = digits.substring(0, 10);
+            }
+            e.target.value = digits;
+        });
+    }
+});
+</script>
+{% endblock %}
+

@@ -1,0 +1,204 @@
+{% extends "base.html" %}
+
+{% block title %}Delivery Dashboard - Credit Management System{% endblock %}
+
+{% block content %}
+<div class="row">
+    <div class="col-12">
+        <h1 class="mb-4">
+            <i class="fas fa-truck me-2"></i>Delivery Dashboard
+        </h1>
+    </div>
+</div>
+
+<!-- Stats Cards -->
+<div class="row mb-4">
+    <div class="col-lg-3 col-md-6 mb-3">
+        <div class="card stats-card stats-primary">
+            <div class="card-body">
+                <div class="d-flex justify-content-between align-items-center">
+                    <div>
+                        <h3 class="stats-number">{{ total_assigned }}</h3>
+                        <p class="stats-label">Total Assigned</p>
+                    </div>
+                    <div class="stats-icon">
+                        <i class="fas fa-list-check"></i>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+    
+    <div class="col-lg-3 col-md-6 mb-3">
+        <div class="card stats-card stats-success">
+            <div class="card-body">
+                <div class="d-flex justify-content-between align-items-center">
+                    <div>
+                        <h3 class="stats-number">{{ completed }}</h3>
+                        <p class="stats-label">Completed</p>
+                    </div>
+                    <div class="stats-icon">
+                        <i class="fas fa-check-circle"></i>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+    
+    <div class="col-lg-3 col-md-6 mb-3">
+        <div class="card stats-card stats-warning">
+            <div class="card-body">
+                <div class="d-flex justify-content-between align-items-center">
+                    <div>
+                        <h3 class="stats-number">{{ pending }}</h3>
+                        <p class="stats-label">Pending</p>
+                    </div>
+                    <div class="stats-icon">
+                        <i class="fas fa-clock"></i>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+    
+    <div class="col-lg-3 col-md-6 mb-3">
+        <div class="card stats-card stats-info">
+            <div class="card-body">
+                <div class="d-flex justify-content-between align-items-center">
+                    <div>
+                        <h3 class="stats-number">{{ "%.1f"|format(completion_rate) }}%</h3>
+                        <p class="stats-label">Completion Rate</p>
+                    </div>
+                    <div class="stats-icon">
+                        <i class="fas fa-percentage"></i>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Today's Deliveries -->
+<div class="row mb-4">
+    <div class="col-12">
+        <div class="card">
+            <div class="card-header d-flex justify-content-between align-items-center">
+                <h5 class="mb-0">
+                    <i class="fas fa-calendar-day me-2"></i>Today's Deliveries ({{ today_deliveries|length }})
+                </h5>
+                <a href="{{ url_for('deliveries') }}" class="btn btn-sm btn-outline-primary">View All</a>
+            </div>
+            <div class="card-body">
+                {% if today_deliveries %}
+                <div class="table-responsive">
+                    <table class="table table-hover">
+                        <thead>
+                            <tr>
+                                <th>Order #</th>
+                                <th>Delivery Address</th>
+                                <th>Customer Contact</th>
+                                <th>Expected Time</th>
+                                <th>Status</th>
+                                <th>Actions</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            {% for delivery in today_deliveries %}
+                            <tr>
+                                <td>{{ delivery.order_number }}</td>
+                                <td>{{ delivery.delivery_address }}</td>
+                                <td>{{ delivery.customer_contact or 'N/A' }}</td>
+                                <td>{{ delivery.expected_time.strftime('%H:%M') if delivery.expected_time else 'N/A' }}</td>
+                                <td>
+                                    {% if delivery.status == 'delivered' %}
+                                        <span class="badge bg-success">Delivered</span>
+                                    {% elif delivery.status == 'in_transit' %}
+                                        <span class="badge bg-info">In Transit</span>
+                                    {% elif delivery.status == 'pending' %}
+                                        <span class="badge bg-warning">Pending</span>
+                                    {% else %}
+                                        <span class="badge bg-danger">Cancelled</span>
+                                    {% endif %}
+                                </td>
+                                <td>
+                                    <a href="{{ url_for('view_delivery', delivery_id=delivery.id) }}" class="btn btn-sm btn-outline-primary">
+                                        <i class="fas fa-eye"></i>
+                                    </a>
+                                </td>
+                            </tr>
+                            {% endfor %}
+                        </tbody>
+                    </table>
+                </div>
+                {% else %}
+                <div class="text-center py-4">
+                    <i class="fas fa-check-circle fa-3x text-success mb-3"></i>
+                    <p class="text-muted">No deliveries scheduled for today. Great job!</p>
+                </div>
+                {% endif %}
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- All Assigned Deliveries -->
+<div class="row">
+    <div class="col-12">
+        <div class="card">
+            <div class="card-header">
+                <h5 class="mb-0">
+                    <i class="fas fa-list me-2"></i>All Assigned Deliveries
+                </h5>
+            </div>
+            <div class="card-body">
+                {% if assigned_deliveries %}
+                <div class="table-responsive">
+                    <table class="table table-hover">
+                        <thead>
+                            <tr>
+                                <th>Order #</th>
+                                <th>Delivery Date</th>
+                                <th>Address</th>
+                                <th>Status</th>
+                                <th>Actions</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            {% for delivery in assigned_deliveries %}
+                            <tr>
+                                <td>{{ delivery.order_number }}</td>
+                                <td>{{ delivery.delivery_date.strftime('%Y-%m-%d') }}</td>
+                                <td>{{ delivery.delivery_address }}</td>
+                                <td>
+                                    {% if delivery.status == 'delivered' %}
+                                        <span class="badge bg-success">Delivered</span>
+                                    {% elif delivery.status == 'in_transit' %}
+                                        <span class="badge bg-info">In Transit</span>
+                                    {% elif delivery.status == 'pending' %}
+                                        <span class="badge bg-warning">Pending</span>
+                                    {% else %}
+                                        <span class="badge bg-danger">Cancelled</span>
+                                    {% endif %}
+                                </td>
+                                <td>
+                                    <a href="{{ url_for('view_delivery', delivery_id=delivery.id) }}" class="btn btn-sm btn-outline-primary">
+                                        <i class="fas fa-eye"></i>
+                                    </a>
+                                </td>
+                            </tr>
+                            {% endfor %}
+                        </tbody>
+                    </table>
+                </div>
+                {% else %}
+                <div class="text-center py-4">
+                    <i class="fas fa-inbox fa-3x text-muted mb-3"></i>
+                    <p class="text-muted">No deliveries assigned yet</p>
+                </div>
+                {% endif %}
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+

@@ -79,14 +79,21 @@ pip install -r requirements.txt
 
 ### Step 3: Run the Application
 ```bash
+# Option 1: Using the startup script (recommended)
+start.bat
+
+# Option 2: Direct Python command
 python app.py
+
+# Option 3: Using the launcher
+python launch.py
 ```
 
-The application will start on `http://localhost:5001`
+The application will start on `http://localhost:5000`
 
 ### Step 4: Access the System
 1. Open your web browser
-2. Navigate to `http://localhost:5001`
+2. Navigate to `http://localhost:5000`
 3. Login with default admin credentials:
    - **Username**: `admin`
    - **Password**: `admin123`
@@ -210,7 +217,7 @@ To add new fields to existing models:
 1. **Port Already in Use**
    ```bash
    # Change port in app.py
-   app.run(debug=True, host='0.0.0.0', port=5001)
+   app.run(debug=True, host='0.0.0.0', port=5000)
    ```
 
 2. **Database Errors**

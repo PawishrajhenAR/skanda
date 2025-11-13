@@ -1,0 +1,151 @@
+{% extends "base.html" %}
+
+{% block title %}Verify OCR Bill - Skanda Enterprises{% endblock %}
+
+{% block content %}
+<div class="row mb-4">
+    <div class="col-12">
+        <div class="d-flex justify-content-between align-items-center">
+            <h1><i class="fas fa-check-circle me-2"></i>Review & Verify OCR Data</h1>
+            <a href="{{ url_for('bills') }}" class="btn btn-secondary">
+                <i class="fas fa-arrow-left me-1"></i>Cancel
+            </a>
+        </div>
+    </div>
+</div>
+
+<div class="row">
+    <div class="col-md-8">
+        <div class="card">
+            <div class="card-header bg-primary text-white">
+                <h5 class="mb-0"><i class="fas fa-edit me-2"></i>Bill Information</h5>
+            </div>
+            <div class="card-body">
+                <form method="POST" action="{{ url_for('verify_ocr_bill') }}">
+                    {% if confidence == 0 %}
+                    <div class="alert alert-warning">
+                        <i class="fas fa-exclamation-triangle me-2"></i>
+                        <strong>OCR Not Available:</strong> Tesseract OCR is not installed or could not extract text.
+                        <br><strong>Action Required:</strong> Please enter all bill information manually in the fields below.
+                        <br><small>You can still save the bill - just fill in all required fields.</small>
+                    </div>
+                    {% else %}
+                    <div class="alert alert-info">
+                        <i class="fas fa-info-circle me-2"></i>
+                        <strong>OCR Confidence:</strong> {{ "%.1f"|format(confidence) }}%
+                        <br>Please review and correct the extracted data below before saving.
+                    </div>
+                    {% endif %}
+                    
+                    <div class="row">
+                        <div class="col-md-6 mb-3">
+                            <label for="bill_number" class="form-label">Bill Number <span class="text-danger">*</span></label>
+                            <input type="text" class="form-control" id="bill_number" name="bill_number" 
+                                   value="{{ parsed_data.bill_number or '' }}" required>
+                            {% if parsed_data.bill_number %}
+                                <small class="text-muted">Detected from OCR</small>
+                            {% endif %}
+                        </div>
+                        <div class="col-md-6 mb-3">
+                            <label for="bill_date" class="form-label">Bill Date <span class="text-danger">*</span></label>
+                            <input type="date" class="form-control" id="bill_date" name="bill_date" 
+                                   value="{{ parsed_data.date or '' }}" required>
+                            {% if parsed_data.date %}
+                                <small class="text-muted">Detected from OCR</small>
+                            {% endif %}
+                        </div>
+                    </div>
+                    
+                    <div class="row">
+                        <div class="col-md-6 mb-3">
+                            <label for="vendor_id" class="form-label">Vendor</label>
+                            <select class="form-select" id="vendor_id" name="vendor_id">
+                                <option value="">Select Vendor</option>
+                                {% for vendor in vendors %}
+                                    <option value="{{ vendor.id }}" 
+                                            {% if parsed_data.vendor_name and vendor.name.lower() in parsed_data.vendor_name.lower() %}selected{% endif %}>
+                                        {{ vendor.name }}
+                                    </option>
+                                {% endfor %}
+                            </select>
+                            {% if parsed_data.vendor_name %}
+                                <small class="text-muted">Detected: {{ parsed_data.vendor_name }}</small>
+                            {% endif %}
+                        </div>
+                        <div class="col-md-6 mb-3">
+                            <label for="salesman_id" class="form-label">Salesman</label>
+                            <select class="form-select" id="salesman_id" name="salesman_id">
+                                <option value="">Select Salesman</option>
+                                {% for salesman in salesmen %}
+                                    <option value="{{ salesman.id }}">{{ salesman.name }}</option>
+                                {% endfor %}
+                            </select>
+                        </div>
+                    </div>
+                    
+                    <div class="row">
+                        <div class="col-md-6 mb-3">
+                            <label for="amount" class="form-label">Total Amount <span class="text-danger">*</span></label>
+                            <input type="number" step="0.01" class="form-control" id="amount" name="amount" 
+                                   value="{{ parsed_data.amount or '' }}" required>
+                            {% if parsed_data.amount %}
+                                <small class="text-muted">Detected from OCR: ₹{{ "%.2f"|format(parsed_data.amount) }}</small>
+                            {% endif %}
+                        </div>
+                        <div class="col-md-6 mb-3">
+                            <label for="payment_method" class="form-label">Payment Method <span class="text-danger">*</span></label>
+                            <select class="form-select" id="payment_method" name="payment_method" required>
+                                <option value="Cash">Cash</option>
+                                <option value="Credit">Credit</option>
+                                <option value="UPI">UPI</option>
+                                <option value="Bank">Bank Transfer</option>
+                            </select>
+                        </div>
+                    </div>
+                    
+                    <div id="credit_fields" style="display: none;">
+                        <div class="row">
+                            <div class="col-md-6 mb-3">
+                                <label for="credit_due_date" class="form-label">Credit Due Date</label>
+                                <input type="date" class="form-control" id="credit_due_date" name="credit_due_date">
+                                <small class="form-text text-muted">Leave empty for default 30 days</small>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <div class="d-flex gap-2 mt-4">
+                        <button type="submit" class="btn btn-success">
+                            <i class="fas fa-save me-1"></i>Save Bill
+                        </button>
+                        <a href="{{ url_for('bills') }}" class="btn btn-secondary">Cancel</a>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+    
+    <div class="col-md-4">
+        <div class="card">
+            <div class="card-header">
+                <h6 class="mb-0"><i class="fas fa-file-text me-2"></i>Extracted OCR Text</h6>
+            </div>
+            <div class="card-body">
+                <pre style="white-space: pre-wrap; font-size: 0.85em; max-height: 400px; overflow-y: auto;">{{ extracted_text[:1000] }}{% if extracted_text|length > 1000 %}... (truncated){% endif %}</pre>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script>
+    // Show/hide credit due date field
+    document.getElementById('payment_method').addEventListener('change', function() {
+        const creditFields = document.getElementById('credit_fields');
+        if (this.value === 'Credit') {
+            creditFields.style.display = 'block';
+        } else {
+            creditFields.style.display = 'none';
+        }
+    });
+</script>
+{% endblock %}
+

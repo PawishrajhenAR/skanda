@@ -313,13 +313,80 @@ window.addEventListener('load', function() {
     initializeSearch();
 });
 
-// Mobile Menu Toggle
-function toggleMobileMenu() {
-    const navbar = document.querySelector('.navbar-collapse');
-    if (navbar) {
-        navbar.classList.toggle('show');
+// Sidebar Toggle Functionality
+document.addEventListener('DOMContentLoaded', function() {
+    const sidebar = document.getElementById('sidebar');
+    const sidebarToggle = document.getElementById('sidebarToggle');
+    const sidebarClose = document.getElementById('sidebarClose');
+    const sidebarOverlay = document.getElementById('sidebarOverlay');
+    const userMenuBtn = document.getElementById('userMenuBtn');
+    const userMenu = document.getElementById('userMenu');
+
+    // Toggle sidebar
+    function toggleSidebar() {
+        if (sidebar) {
+            sidebar.classList.toggle('active');
+        }
+        if (sidebarOverlay) {
+            sidebarOverlay.classList.toggle('active');
+        }
     }
-}
+
+    // Close sidebar
+    function closeSidebar() {
+        if (sidebar) {
+            sidebar.classList.remove('active');
+        }
+        if (sidebarOverlay) {
+            sidebarOverlay.classList.remove('active');
+        }
+    }
+
+    // Event listeners
+    if (sidebarToggle) {
+        sidebarToggle.addEventListener('click', toggleSidebar);
+    }
+
+    if (sidebarClose) {
+        sidebarClose.addEventListener('click', closeSidebar);
+    }
+
+    if (sidebarOverlay) {
+        sidebarOverlay.addEventListener('click', closeSidebar);
+    }
+
+    // User menu toggle
+    if (userMenuBtn && userMenu) {
+        userMenuBtn.addEventListener('click', function(e) {
+            e.stopPropagation();
+            userMenu.classList.toggle('show');
+        });
+
+        // Close user menu when clicking outside
+        document.addEventListener('click', function(e) {
+            if (!userMenuBtn.contains(e.target) && !userMenu.contains(e.target)) {
+                userMenu.classList.remove('show');
+            }
+        });
+    }
+
+    // Set active menu item based on current URL
+    const currentPath = window.location.pathname;
+    const menuLinks = document.querySelectorAll('.menu-link');
+    
+    menuLinks.forEach(function(link) {
+        if (link.getAttribute('href') === currentPath) {
+            link.classList.add('active');
+        }
+    });
+
+    // Close sidebar on window resize if desktop
+    window.addEventListener('resize', function() {
+        if (window.innerWidth > 992) {
+            closeSidebar();
+        }
+    });
+});
 
 // Responsive Table
 function makeTableResponsive() {

@@ -1,0 +1,83 @@
+{% extends "base.html" %}
+
+{% block title %}Vendors - Credit Management System{% endblock %}
+
+{% block content %}
+<div class="row">
+    <div class="col-12">
+        <div class="d-flex justify-content-between align-items-center mb-4">
+            <h1><i class="fas fa-store me-2"></i>Vendors</h1>
+            <a href="{{ url_for('new_vendor') }}" class="btn btn-primary">
+                <i class="fas fa-plus me-1"></i>New Vendor
+            </a>
+        </div>
+    </div>
+</div>
+
+<div class="row">
+    <div class="col-12">
+        <div class="card">
+            <div class="card-body">
+                {% if vendors %}
+                <div class="table-responsive">
+                    <table class="table table-hover">
+                        <thead>
+                            <tr>
+                                <th>Name</th>
+                                <th>Contact</th>
+                                <th>Email</th>
+                                <th>Category</th>
+                                <th>Outstanding Credit</th>
+                                <th>Total Credit</th>
+                                <th>GST Number</th>
+                                <th>Actions</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            {% for vendor in vendors %}
+                            {% set has_overdue = vendor.outstanding_credit and vendor.outstanding_credit > 0 %}
+                            <tr {% if has_overdue %}class="table-danger"{% endif %}>
+                                <td>
+                                    <strong {% if has_overdue %}class="text-danger"{% endif %}>{{ vendor.name }}</strong>
+                                    {% if has_overdue %}
+                                    <span class="badge bg-danger ms-2" title="Has outstanding credit">
+                                        <i class="fas fa-exclamation-triangle"></i> Overdue
+                                    </span>
+                                    {% endif %}
+                                </td>
+                                <td>{{ vendor.contact }}</td>
+                                <td>{{ vendor.email or 'N/A' }}</td>
+                                <td>
+                                    <span class="badge bg-info">{{ vendor.category or 'N/A' }}</span>
+                                </td>
+                                <td>
+                                    {% if vendor.outstanding_credit %}
+                                        <strong class="text-danger">₹{{ "%.2f"|format(vendor.outstanding_credit) }}</strong>
+                                    {% else %}
+                                        <span class="text-success">₹0.00</span>
+                                    {% endif %}
+                                </td>
+                                <td>₹{{ "%.2f"|format(vendor.total_credit or 0) }}</td>
+                                <td>{{ vendor.gst_number or 'N/A' }}</td>
+                                <td>
+                                    <a href="{{ url_for('edit_vendor', vendor_id=vendor.id) }}" class="btn btn-sm btn-outline-primary">
+                                        <i class="fas fa-edit"></i>
+                                    </a>
+                                </td>
+                            </tr>
+                            {% endfor %}
+                        </tbody>
+                    </table>
+                </div>
+                {% else %}
+                <div class="text-center py-5">
+                    <i class="fas fa-store fa-3x text-muted mb-3"></i>
+                    <p class="text-muted">No vendors found. <a href="{{ url_for('new_vendor') }}">Add your first vendor</a></p>
+                </div>
+                {% endif %}
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+

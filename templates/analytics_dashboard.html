@@ -1,0 +1,407 @@
+{% extends "base.html" %}
+
+{% block title %}Analytics & Reports - Skanda Enterprises{% endblock %}
+
+{% block page_title %}Analytics & Reports{% endblock %}
+
+{% block extra_css %}
+<script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
+{% endblock %}
+
+{% block content %}
+<!-- Filters -->
+<div class="card mb-4">
+    <div class="card-header">
+        <h5 class="mb-0"><i class="fas fa-filter me-2"></i>Filters</h5>
+    </div>
+    <div class="card-body">
+        <form method="GET" action="{{ url_for('analytics_dashboard') }}">
+            <div class="row g-3">
+                <div class="col-md-3">
+                    <label class="form-label">Date From</label>
+                    <input type="date" name="date_from" class="form-control" value="{{ date_from }}" required>
+                </div>
+                <div class="col-md-3">
+                    <label class="form-label">Date To</label>
+                    <input type="date" name="date_to" class="form-control" value="{{ date_to }}" required>
+                </div>
+                <div class="col-md-3">
+                    <label class="form-label">Vendor</label>
+                    <select name="vendor_id" class="form-select">
+                        <option value="">All Vendors</option>
+                        {% for vendor in vendors %}
+                        <option value="{{ vendor.id }}" {% if selected_vendor == vendor.id %}selected{% endif %}>
+                            {{ vendor.name }}
+                        </option>
+                        {% endfor %}
+                    </select>
+                </div>
+                <div class="col-md-3">
+                    <label class="form-label">Salesman</label>
+                    <select name="salesman_id" class="form-select">
+                        <option value="">All Salesmen</option>
+                        {% for salesman in salesmen %}
+                        <option value="{{ salesman.id }}" {% if selected_salesman == salesman.id %}selected{% endif %}>
+                            {{ salesman.name }}
+                        </option>
+                        {% endfor %}
+                    </select>
+                </div>
+                <div class="col-md-12">
+                    <button type="submit" class="btn btn-primary">
+                        <i class="fas fa-search me-1"></i>Apply Filters
+                    </button>
+                    <a href="{{ url_for('analytics_dashboard') }}" class="btn btn-outline-secondary">
+                        <i class="fas fa-times me-1"></i>Clear
+                    </a>
+                    <a href="{{ url_for('export_reports') }}?type=excel&report=credit&date_from={{ date_from }}&date_to={{ date_to }}" class="btn btn-success">
+                        <i class="fas fa-download me-1"></i>Export Credit Report
+                    </a>
+                    <a href="{{ url_for('export_reports') }}?type=excel&report=sales&date_from={{ date_from }}&date_to={{ date_to }}" class="btn btn-success">
+                        <i class="fas fa-download me-1"></i>Export Sales Report
+                    </a>
+                </div>
+            </div>
+        </form>
+    </div>
+</div>
+
+<!-- Key Metrics -->
+<div class="row mb-4">
+    <div class="col-lg-3 col-md-6 mb-3">
+        <div class="card stats-card stats-primary">
+            <div class="card-body">
+                <div class="d-flex justify-content-between align-items-center">
+                    <div>
+                        <h3 class="stats-number">₹{{ "%.2f"|format(total_sales) }}</h3>
+                        <p class="stats-label">Total Sales</p>
+                    </div>
+                    <div class="stats-icon">
+                        <i class="fas fa-rupee-sign"></i>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+    
+    <div class="col-lg-3 col-md-6 mb-3">
+        <div class="card stats-card stats-warning">
+            <div class="card-body">
+                <div class="d-flex justify-content-between align-items-center">
+                    <div>
+                        <h3 class="stats-number">₹{{ "%.2f"|format(total_credits) }}</h3>
+                        <p class="stats-label">Total Credits</p>
+                    </div>
+                    <div class="stats-icon">
+                        <i class="fas fa-credit-card"></i>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+    
+    <div class="col-lg-3 col-md-6 mb-3">
+        <div class="card stats-card stats-info">
+            <div class="card-body">
+                <div class="d-flex justify-content-between align-items-center">
+                    <div>
+                        <h3 class="stats-number">₹{{ "%.2f"|format(pending_credits) }}</h3>
+                        <p class="stats-label">Pending Credits</p>
+                    </div>
+                    <div class="stats-icon">
+                        <i class="fas fa-clock"></i>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+    
+    <div class="col-lg-3 col-md-6 mb-3">
+        <div class="card stats-card stats-success">
+            <div class="card-body">
+                <div class="d-flex justify-content-between align-items-center">
+                    <div>
+                        <h3 class="stats-number">{{ "%.1f"|format(delivery_efficiency) }}%</h3>
+                        <p class="stats-label">Delivery Efficiency</p>
+                    </div>
+                    <div class="stats-icon">
+                        <i class="fas fa-truck"></i>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<div class="row">
+    <!-- Charts -->
+    <div class="col-md-6 mb-4">
+        <div class="card">
+            <div class="card-header">
+                <h5 class="mb-0"><i class="fas fa-chart-bar me-2"></i>Credit Status by Vendor</h5>
+            </div>
+            <div class="card-body">
+                <canvas id="creditStatusChart"></canvas>
+            </div>
+        </div>
+    </div>
+    
+    <div class="col-md-6 mb-4">
+        <div class="card">
+            <div class="card-header">
+                <h5 class="mb-0"><i class="fas fa-chart-pie me-2"></i>Vendor Category Distribution</h5>
+            </div>
+            <div class="card-body">
+                <canvas id="vendorCategoryChart"></canvas>
+            </div>
+        </div>
+    </div>
+    
+    <div class="col-md-12 mb-4">
+        <div class="card">
+            <div class="card-header">
+                <h5 class="mb-0"><i class="fas fa-chart-line me-2"></i>Sales Trend Over Time</h5>
+            </div>
+            <div class="card-body">
+                <canvas id="salesTrendChart"></canvas>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Performance Tables -->
+<div class="row">
+    <div class="col-md-6 mb-4">
+        <div class="card">
+            <div class="card-header">
+                <h5 class="mb-0"><i class="fas fa-store me-2"></i>Top 5 Vendors by Transaction Volume</h5>
+            </div>
+            <div class="card-body">
+                <div class="table-responsive">
+                    <table class="table table-hover">
+                        <thead>
+                            <tr>
+                                <th>Rank</th>
+                                <th>Vendor</th>
+                                <th>Bills</th>
+                                <th>Total Amount</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            {% for vendor in vendor_performance %}
+                            <tr>
+                                <td><span class="badge bg-primary">{{ loop.index }}</span></td>
+                                <td><strong>{{ vendor.name }}</strong></td>
+                                <td>{{ vendor.bill_count }}</td>
+                                <td class="text-success"><strong>₹{{ "%.2f"|format(vendor.total_amount) }}</strong></td>
+                            </tr>
+                            {% else %}
+                            <tr>
+                                <td colspan="4" class="text-center text-muted">No vendor data available</td>
+                            </tr>
+                            {% endfor %}
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+    </div>
+    
+    <div class="col-md-6 mb-4">
+        <div class="card">
+            <div class="card-header">
+                <h5 class="mb-0"><i class="fas fa-users me-2"></i>Salesman Performance</h5>
+            </div>
+            <div class="card-body">
+                <div class="table-responsive">
+                    <table class="table table-hover">
+                        <thead>
+                            <tr>
+                                <th>Salesman</th>
+                                <th>Bills</th>
+                                <th>Total Sales</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            {% for salesman in salesman_performance %}
+                            <tr>
+                                <td><strong>{{ salesman.name }}</strong></td>
+                                <td>{{ salesman.bill_count }}</td>
+                                <td class="text-success"><strong>₹{{ "%.2f"|format(salesman.total_sales) }}</strong></td>
+                            </tr>
+                            {% else %}
+                            <tr>
+                                <td colspan="3" class="text-center text-muted">No salesman data available</td>
+                            </tr>
+                            {% endfor %}
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Credit Recovery Progress -->
+<div class="row">
+    <div class="col-md-12">
+        <div class="card">
+            <div class="card-header">
+                <h5 class="mb-0"><i class="fas fa-chart-ring me-2"></i>Credit Recovery Progress</h5>
+            </div>
+            <div class="card-body">
+                <div class="row">
+                    <div class="col-md-3 text-center">
+                        <h4 class="text-primary">₹{{ "%.2f"|format(total_credits) }}</h4>
+                        <small class="text-muted">Total Credits</small>
+                    </div>
+                    <div class="col-md-3 text-center">
+                        <h4 class="text-success">₹{{ "%.2f"|format(cleared_credits) }}</h4>
+                        <small class="text-muted">Cleared</small>
+                    </div>
+                    <div class="col-md-3 text-center">
+                        <h4 class="text-warning">₹{{ "%.2f"|format(pending_credits) }}</h4>
+                        <small class="text-muted">Pending</small>
+                    </div>
+                    <div class="col-md-3 text-center">
+                        <h4 class="text-danger">₹{{ "%.2f"|format(overdue_credits) }}</h4>
+                        <small class="text-muted">Overdue</small>
+                    </div>
+                </div>
+                <div class="mt-3">
+                    {% set recovery_rate = (cleared_credits / total_credits * 100) if total_credits > 0 else 0 %}
+                    <div class="progress" style="height: 30px;">
+                        <div class="progress-bar bg-success" role="progressbar" 
+                             style="width: {{ recovery_rate }}%" 
+                             aria-valuenow="{{ recovery_rate }}" 
+                             aria-valuemin="0" 
+                             aria-valuemax="100">
+                            <strong>{{ "%.1f"|format(recovery_rate) }}% Recovered</strong>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script>
+// Credit Status by Vendor Chart
+const creditByVendorData = [
+    {% for item in credit_by_vendor %}
+    {vendor: '{{ item[0] }}', status: '{{ item[1] }}', amount: {{ item[2] }}},
+    {% endfor %}
+];
+
+// Process data for chart
+const vendorMap = {};
+creditByVendorData.forEach(item => {
+    if (!vendorMap[item.vendor]) {
+        vendorMap[item.vendor] = {Pending: 0, Cleared: 0, Overdue: 0};
+    }
+    vendorMap[item.vendor][item.status] = item.amount;
+});
+
+const vendors = Object.keys(vendorMap);
+const pendingData = vendors.map(v => vendorMap[v].Pending || 0);
+const clearedData = vendors.map(v => vendorMap[v].Cleared || 0);
+const overdueData = vendors.map(v => vendorMap[v].Overdue || 0);
+
+{% if credit_by_vendor %}
+new Chart(document.getElementById('creditStatusChart'), {
+    type: 'bar',
+    data: {
+        labels: vendors,
+        datasets: [
+            {
+                label: 'Pending',
+                data: pendingData,
+                backgroundColor: 'rgba(255, 193, 7, 0.8)'
+            },
+            {
+                label: 'Cleared',
+                data: clearedData,
+                backgroundColor: 'rgba(40, 167, 69, 0.8)'
+            },
+            {
+                label: 'Overdue',
+                data: overdueData,
+                backgroundColor: 'rgba(220, 53, 69, 0.8)'
+            }
+        ]
+    },
+    options: {
+        responsive: true,
+        scales: {
+            y: {
+                beginAtZero: true
+            }
+        }
+    }
+});
+{% else %}
+document.getElementById('creditStatusChart').getContext('2d').fillText('No data available', 10, 50);
+{% endif %}
+
+// Vendor Category Distribution Chart
+const categoryLabels = [{% for cat in vendor_categories %}'{{ cat[0] or "Uncategorized" }}'{% if not loop.last %},{% endif %}{% endfor %}];
+const categoryValues = [{% for cat in vendor_categories %}{{ cat[1] }}{% if not loop.last %},{% endif %}{% endfor %}];
+
+{% if categoryLabels %}
+new Chart(document.getElementById('vendorCategoryChart'), {
+    type: 'pie',
+    data: {
+        labels: categoryLabels,
+        datasets: [{
+            data: categoryValues,
+            backgroundColor: [
+                'rgba(99, 102, 241, 0.8)',
+                'rgba(16, 185, 129, 0.8)',
+                'rgba(245, 158, 11, 0.8)',
+                'rgba(239, 68, 68, 0.8)',
+                'rgba(139, 92, 246, 0.8)',
+                'rgba(236, 72, 153, 0.8)'
+            ]
+        }]
+    },
+    options: {
+        responsive: true
+    }
+});
+{% else %}
+document.getElementById('vendorCategoryChart').getContext('2d').fillText('No data available', 10, 50);
+{% endif %}
+
+// Sales Trend Chart
+const salesDates = [{% for trend in sales_trend %}'{{ trend[0] }}'{% if not loop.last %},{% endif %}{% endfor %}];
+const salesAmounts = [{% for trend in sales_trend %}{{ trend[1] }}{% if not loop.last %},{% endif %}{% endfor %}];
+
+{% if salesDates %}
+new Chart(document.getElementById('salesTrendChart'), {
+    type: 'line',
+    data: {
+        labels: salesDates,
+        datasets: [{
+            label: 'Sales Amount (₹)',
+            data: salesAmounts,
+            borderColor: 'rgba(99, 102, 241, 1)',
+            backgroundColor: 'rgba(99, 102, 241, 0.1)',
+            tension: 0.4,
+            fill: true
+        }]
+    },
+    options: {
+        responsive: true,
+        scales: {
+            y: {
+                beginAtZero: true
+            }
+        }
+    }
+});
+{% else %}
+document.getElementById('salesTrendChart').getContext('2d').fillText('No data available', 10, 50);
+{% endif %}
+</script>
+{% endblock %}
+

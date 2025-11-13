@@ -1,0 +1,151 @@
+{% extends "base.html" %}
+
+{% block title %}Credit Transaction #{{ credit.id }} - Skanda Enterprises{% endblock %}
+
+{% block content %}
+<div class="row mb-4">
+    <div class="col-12">
+        <div class="d-flex justify-content-between align-items-center">
+            <h1><i class="fas fa-credit-card me-2"></i>Credit Transaction #{{ credit.id }}</h1>
+            <div>
+                <a href="{{ url_for('credits_list') }}" class="btn btn-secondary">
+                    <i class="fas fa-arrow-left me-1"></i>Back to List
+                </a>
+            </div>
+        </div>
+    </div>
+</div>
+
+<div class="row">
+    <div class="col-md-8">
+        <div class="card">
+            <div class="card-header">
+                <h5 class="mb-0"><i class="fas fa-info-circle me-2"></i>Transaction Details</h5>
+            </div>
+            <div class="card-body">
+                <table class="table table-bordered">
+                    <tr>
+                        <th width="30%">Credit ID</th>
+                        <td>#{{ credit.id }}</td>
+                    </tr>
+                    <tr>
+                        <th>Bill Number</th>
+                        <td>
+                            {% if credit.bill_number %}
+                                {% if credit.bill_id %}
+                                    <a href="{{ url_for('view_bill', bill_id=credit.bill_id) }}">{{ credit.bill_number }}</a>
+                                {% else %}
+                                    {{ credit.bill_number }}
+                                {% endif %}
+                            {% else %}
+                                N/A
+                            {% endif %}
+                        </td>
+                    </tr>
+                    <tr>
+                        <th>Vendor</th>
+                        <td>{{ credit.vendor.name if credit.vendor else 'N/A' }}</td>
+                    </tr>
+                    <tr>
+                        <th>Salesman</th>
+                        <td>{{ credit.salesman.name if credit.salesman else 'N/A' }}</td>
+                    </tr>
+                    <tr>
+                        <th>Credit Amount</th>
+                        <td><strong class="text-primary" style="font-size: 1.2rem;">₹{{ "{:,.2f}".format(credit.credit_amount) }}</strong></td>
+                    </tr>
+                    <tr>
+                        <th>Due Date</th>
+                        <td>
+                            {{ credit.due_date.strftime('%Y-%m-%d') }}
+                            {% if credit.due_date < today and credit.status != 'Cleared' %}
+                                <span class="badge bg-danger ms-2">Overdue</span>
+                            {% elif (credit.due_date - today).days <= 3 and credit.status != 'Cleared' %}
+                                <span class="badge bg-warning ms-2">Due Soon</span>
+                            {% endif %}
+                        </td>
+                    </tr>
+                    <tr>
+                        <th>Status</th>
+                        <td>
+                            {% if credit.status == 'Pending' %}
+                                <span class="badge bg-warning text-dark" style="font-size: 0.9rem;">Pending</span>
+                            {% elif credit.status == 'Cleared' %}
+                                <span class="badge bg-success" style="font-size: 0.9rem;">Cleared</span>
+                            {% elif credit.status == 'Overdue' %}
+                                <span class="badge bg-danger" style="font-size: 0.9rem;">Overdue</span>
+                            {% endif %}
+                        </td>
+                    </tr>
+                    <tr>
+                        <th>Payment Method</th>
+                        <td>{{ credit.payment_method }}</td>
+                    </tr>
+                    <tr>
+                        <th>Created At</th>
+                        <td>{{ credit.created_at.strftime('%Y-%m-%d %H:%M:%S') }}</td>
+                    </tr>
+                    <tr>
+                        <th>Last Updated</th>
+                        <td>{{ credit.updated_at.strftime('%Y-%m-%d %H:%M:%S') }}</td>
+                    </tr>
+                </table>
+            </div>
+        </div>
+    </div>
+    
+    <div class="col-md-4">
+        {% if session.role == 'admin' %}
+            <div class="card">
+                <div class="card-header bg-primary text-white">
+                    <h5 class="mb-0"><i class="fas fa-cog me-2"></i>Admin Actions</h5>
+                </div>
+                <div class="card-body">
+                    <form method="POST" action="{{ url_for('update_credit_status', credit_id=credit.id) }}">
+                        <div class="mb-3">
+                            <label class="form-label">Update Status</label>
+                            <select name="status" class="form-select" required>
+                                <option value="Pending" {% if credit.status == 'Pending' %}selected{% endif %}>Pending</option>
+                                <option value="Cleared" {% if credit.status == 'Cleared' %}selected{% endif %}>Cleared</option>
+                                <option value="Overdue" {% if credit.status == 'Overdue' %}selected{% endif %}>Overdue</option>
+                            </select>
+                        </div>
+                        <button type="submit" class="btn btn-primary w-100">
+                            <i class="fas fa-save me-1"></i>Update Status
+                        </button>
+                    </form>
+                </div>
+            </div>
+        {% endif %}
+        
+        <div class="card mt-3">
+            <div class="card-header">
+                <h5 class="mb-0"><i class="fas fa-history me-2"></i>Quick Info</h5>
+            </div>
+            <div class="card-body">
+                <p class="mb-2">
+                    <strong>Days Until Due:</strong><br>
+                    {% if credit.status == 'Cleared' %}
+                        <span class="text-success">Cleared</span>
+                    {% elif credit.due_date < today %}
+                        <span class="text-danger">
+                            {{ (today - credit.due_date).days }} day(s) overdue
+                        </span>
+                    {% else %}
+                        <span class="text-info">
+                            {{ (credit.due_date - today).days }} day(s) remaining
+                        </span>
+                    {% endif %}
+                </p>
+                <hr>
+                <p class="mb-0">
+                    <small class="text-muted">
+                        This credit transaction was automatically created when a bill was added with credit payment.
+                    </small>
+                </p>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+

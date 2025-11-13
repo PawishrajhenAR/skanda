@@ -29,7 +29,7 @@ def start_application():
     """Start the Flask application"""
     print("Starting Credit Management System...")
     print("=" * 50)
-    print("Application will be available at: http://localhost:5001")
+    print("Application will be available at: http://localhost:5000")
     print("Default login credentials:")
     print("  Username: admin")
     print("  Password: admin123")
@@ -37,9 +37,18 @@ def start_application():
     print("Press Ctrl+C to stop the application")
     print("=" * 50)
     
+    # Check if venv exists and use its Python interpreter
+    venv_python = os.path.join("venv", "Scripts", "python.exe")
+    if os.path.exists(venv_python):
+        print("Using virtual environment Python interpreter")
+        python_exe = venv_python
+    else:
+        print("WARNING: Virtual environment not found! Using system Python")
+        python_exe = sys.executable
+    
     try:
         # Start the Flask app
-        subprocess.run([sys.executable, "app.py"])
+        subprocess.run([python_exe, "app.py"])
     except KeyboardInterrupt:
         print("\nApplication stopped by user")
     except Exception as e:
@@ -65,7 +74,7 @@ def main():
         if response in ['y', 'yes']:
             print("Browser will open in 3 seconds...")
             sleep(3)
-            webbrowser.open("http://localhost:5001")
+            webbrowser.open("http://localhost:5000")
     except KeyboardInterrupt:
         print("\nStarting application without opening browser...")
     
