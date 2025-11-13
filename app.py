@@ -694,28 +694,49 @@ def index():
 
 @app.route('/login', methods=['GET', 'POST'])
 def login():
+    # Ensure database is initialized before login
+    if not _db_initialized:
+        try:
+            init_db()
+        except Exception as e:
+            print(f"Database initialization error during login: {e}")
+            flash('Database initialization error. Please try again in a moment.', 'error')
+            return render_template('login.html')
+    
     if request.method == 'POST':
         username = request.form['username']
         password = request.form['password']
         
-        user = User.query.filter_by(username=username).first()
-        
-        if user and user.check_password(password):
-            if not user.is_active:
-                flash('Your account is disabled. Please contact administrator.', 'error')
-                return render_template('login.html')
+        try:
+            user = User.query.filter_by(username=username).first()
             
-            session['user_id'] = user.id
-            session['username'] = user.username
-            session['role'] = user.role
-            session['full_name'] = user.full_name or user.username
-            
-            log_activity('login', 'user', user.id, None, f"User logged in")
-            log_audit('LOGIN', 'User', user.id, meta={'username': user.username, 'role': user.role})
-            flash('Login successful!', 'success')
-            return redirect(url_for('dashboard'))
-        else:
-            flash('Invalid username or password.', 'error')
+            if user and user.check_password(password):
+                if not user.is_active:
+                    flash('Your account is disabled. Please contact administrator.', 'error')
+                    return render_template('login.html')
+                
+                session['user_id'] = user.id
+                session['username'] = user.username
+                session['role'] = user.role
+                session['full_name'] = user.full_name or user.username
+                
+                log_activity('login', 'user', user.id, None, f"User logged in")
+                log_audit('LOGIN', 'User', user.id, meta={'username': user.username, 'role': user.role})
+                flash('Login successful!', 'success')
+                return redirect(url_for('dashboard'))
+            else:
+                # Check if database has any users at all
+                user_count = User.query.count()
+                if user_count == 0:
+                    flash('No users found in database. Database may need initialization. Please contact administrator.', 'error')
+                    print("⚠️  No users found in database - initialization may have failed")
+                else:
+                    flash('Invalid username or password.', 'error')
+        except Exception as e:
+            print(f"Login error: {e}")
+            import traceback
+            traceback.print_exc()
+            flash('An error occurred during login. Please try again.', 'error')
     
     return render_template('login.html')
 
@@ -3239,27 +3260,34 @@ def init_db():
                 traceback.print_exc()
                 raise
             
-            # Check if tables exist by trying to query
+            # Always try to seed default users (create_tables handles checking if they exist)
+            print("🔄 Seeding default users...")
             try:
-                # Try to query User table to verify it exists
+                create_tables()  # This will create tables AND seed default users
+                print("✅ Default users seeded successfully")
+            except Exception as seed_error:
+                print(f"⚠️  Could not seed default users: {seed_error}")
+                import traceback
+                traceback.print_exc()
+                # Don't raise - tables are created, users might already exist
+            
+            # Verify users were created
+            try:
                 from sqlalchemy import inspect
                 inspector = inspect(db.engine)
                 tables = inspector.get_table_names()
                 print(f"📊 Database tables found: {', '.join(tables) if tables else 'None'}")
                 
-                if 'user' in tables:
-                    User.query.limit(1).all()
-                    print("✅ Database tables are accessible")
+                user_count = User.query.count()
+                print(f"👥 Users in database: {user_count}")
+                if user_count > 0:
+                    users = User.query.all()
+                    for u in users:
+                        print(f"   - {u.username} ({u.role})")
                 else:
-                    print("⚠️  User table not found, creating default data...")
-                    create_tables()
-            except Exception as check_error:
-                print(f"⚠️  Could not verify tables, but continuing: {check_error}")
-                # Still try to create default data
-                try:
-                    create_tables()
-                except Exception as seed_error:
-                    print(f"⚠️  Could not seed default data: {seed_error}")
+                    print("⚠️  WARNING: No users found in database!")
+            except Exception as verify_error:
+                print(f"⚠️  Could not verify database state: {verify_error}")
             
             _db_initialized = True
             print("✅ Database initialization complete")
