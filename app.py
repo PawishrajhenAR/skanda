@@ -638,15 +638,25 @@ def login_required(f):
     return decorated_function
 
 def role_required(*roles):
-    """Decorator to require specific role(s)"""
+    """Decorator to require specific role(s). Admin has access to all routes."""
     def decorator(f):
         @wraps(f)
         @login_required
         def decorated_function(*args, **kwargs):
             user = User.query.get(session.get('user_id'))
-            if not user or user.role not in roles:
+            if not user:
+                flash('Please log in to access this page.', 'error')
+                return redirect(url_for('login'))
+            
+            # Admin has access to everything
+            if user.role == 'admin':
+                return f(*args, **kwargs)
+            
+            # Check if user has required role
+            if user.role not in roles:
                 flash(f'Access denied. Required role: {", ".join(roles)}', 'error')
                 return redirect(url_for('dashboard'))
+            
             return f(*args, **kwargs)
         return decorated_function
     return decorator
